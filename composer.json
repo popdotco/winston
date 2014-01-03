@@ -1,7 +1,7 @@
 {
     "name": "pop/winston",
     "type": "library",
-    "description": Winston is a AB/split/multivariate testing library utilizing redis and a basic machine learning algorithm for automatically displaying the most successful test variations.",
+    "description": "Winston is a AB/split/multivariate testing library utilizing redis and a basic machine learning algorithm for automatically displaying the most successful test variations.",
     "keywords": ["ab", "test", "testing", "ab test", "ab testing", "multivariate", "multi-variate", "split", "split test", "split testing"],
     "homepage": "http://github.com/popdotco/winston",
     "license": "MIT",
