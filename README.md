@@ -45,7 +45,7 @@ $winston = new \Pop\Winston($config);
 
 #### Server Side Code
 
-Todo...
+This implementation is only an example of determining a route with minimal muss and fus.
 
 ## Requirements
 
