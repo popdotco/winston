@@ -70,6 +70,33 @@ if ($uri == 'winston/event') {
 }
 ```
 
+## Advanced Usage: Adding Events Within Variations via Templating
+
+With Winston, you can add events directly within your variation text/html. In each variation, you can use the syntax `{{EVENT_NAME}}` where `EVENT_NAME` is one of the supported client events found in the section below. Winston will internally find and replace these matching template strings with DOM event handlers. 
+
+Here's an example of a test you can setup in your configuration file which utilizes the basic template engine:
+
+```php
+<?php
+$config = array(
+    'tests' => array(
+        'signup-submit-button-test' => array(
+            'description' => 'A sample test',
+            'variations' => array(
+                array(
+                    'id'    => 'submit-default',
+                    'text'  => '<button type="submit" {{click}}>Submit</button>'
+                ),
+                array(
+                    'id'    => 'submit-signup-now',
+                    'text'  => '<button type="submit" {{click}}>Signup Now</button>'
+                ),
+            )
+        )
+    )
+);
+```
+
 ## Supported Client Side Events
 
 Winston supports triggering variation successes for all of the popular DOM events, however we suggest steering clear of mouse movement events given how frequently they trigger. The full list of supported events is `click`, `submit`, `focus`, `blur`, `change`, `mouseover`, `mouseout`, `mousedown`, `mouseup`, `keypress`, `keydown`, and `keyup`.
