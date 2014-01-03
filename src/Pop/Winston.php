@@ -29,6 +29,18 @@ class Winston {
     public $confidenceInterval = .95;
 
     /**
+     * Whether or not to detect bots.
+     * @var bool
+     */
+    public $detectBots = false;
+
+    /**
+     * Whether the client is a bot or not.
+     * @var bool
+     */
+    public $isBot = null;
+
+    /**
      * The overall array of tests/variations.
      * @var array
      */
@@ -50,12 +62,6 @@ class Winston {
         'domain'    => 'localhost',
         'secure'    => false
     );
-
-    /**
-     * Whether or not to detect bots.
-     * @var bool
-     */
-    public $detectBots = false;
 
     /**
      * Default constructor which takes an optional configuration array.
@@ -145,12 +151,6 @@ class Winston {
             . $variation_id . '\', \''
             . $trimType
             . '\');"';
-
-        /*
-        'on' . $trimType . '="_gaq.push([\'_trackEvent\', \''
-        . $test_id . '\', \'' . $variation_id . '\', \''
-        . $curEvent['id'] . '\', 1]);"';
-        */
     }
 
     /**
@@ -169,11 +169,18 @@ class Winston {
         $output .= 'POP = POP || {};' . PHP_EOL;
         $output .= 'POP.Winston = POP.Winston || {};' . PHP_EOL;
         $output .= 'POP.Winston.token = \'' . $token . '\';' . PHP_EOL;
+
+        // check if disabling winston
+        $isDisabled = $this->getDetectBots() && $this->isBot() ? 'true' : 'false';
+        $output .= 'POP.Winston.disabled = ' . $isDisabled . ';';
+
+        // generate api endpoint urls
         $output .= 'POP.Winston.endpoints = {' . PHP_EOL;
         $output .= 'trackEvent: \'' . $this->config['endpoints']['event'] . '\',';
         $output .= 'trackPageview: \'' . $this->config['endpoints']['pageview'] . '\'';
         $output .= '}' . PHP_EOL . PHP_EOL;
 
+        // generate pageviews for active tests
         if (!empty($this->activeTests)) {
             $pageviews = array();
             foreach ($this->activeTests as $test_id => $variation_id) {
@@ -457,8 +464,6 @@ class Winston {
 
         // handle whether to detect and avoid bots
         $this->setDetectBots(isset($config['detectBots']) && $config['detectBots'] == true);
-
-        // TODO: handle memcached config
     }
 
     /**
@@ -638,12 +643,17 @@ class Winston {
      */
     public function isBot()
     {
+        if (!is_null($this->isBot)) {
+            return $this->isBot;
+        }
+
+        // get the user agent
         $userAgent = getenv('HTTP_USER_AGENT');
         if (empty($userAgent)) {
             return false;
         }
 
-        $isBot = false;
+        $this->isBot = false;
 
         $bots = array(
             // popular crawl related words
@@ -788,12 +798,12 @@ class Winston {
         // check for a matching bot
         foreach ($bots as $bot) {
             if (stripos($userAgent, $bot) !== FALSE) {
-                $isBot = true;
+                $this->isBot = true;
                 break;
             }
         }
 
-        return $isBot;
+        return $this->isBot;
     }
 
 }

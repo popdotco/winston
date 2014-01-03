@@ -9,6 +9,10 @@
      * object (individual test).
      */
     POP.Winston.pageview = function(tests) {
+        if (POP.Winston.disabled) {
+            return true;
+        }
+
         if (!$.isArray(tests)) {
             tests = [tests];
         }
@@ -29,6 +33,10 @@
      * Record that a successful event has taken place.
      */
     POP.Winston.event = function(test_id, variation_id, event) {
+        if (POP.Winston.disabled) {
+            return true;
+        }
+        
         // post to server
         $.post(
             POP.Winston.endpoints.trackEvent,
