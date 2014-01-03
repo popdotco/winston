@@ -10,6 +10,8 @@ Winston is in active development and pre-alpha. You can contribute, but it's not
 
 This example uses short tags, but you don't have to if they aren't enabled. In this example, we're checking to see if varying the page's headline/tagline has any affect on the frequency of clicking a button directly below it.
 
+#### Client Side Code
+
 ```html
 <?php
 // include the composer autoloader
@@ -40,3 +42,14 @@ $winston = new \Pop\Winston($config);
 </body>
 </html>
 ```
+
+#### Server Side Code
+
+Todo...
+
+## Requirements
+
+  1. PHP 5.3+
+  2. Redis must be installed and accessible.
+  3. Composer is required for loading dependencies such as Predis, a popular PHP Redis client.
+  4. You must create server side API endpoints in your framework or custom rolled application for Winston to be able to interact with the server side Winston library. These endpoints will need to take in `POST` data, load the Winston library, and pass in the `POST` data to the Winston library. More documentation to come.
