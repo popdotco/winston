@@ -70,6 +70,18 @@ if ($uri == 'winston/event') {
 }
 ```
 
+## Supported Client Side Events
+
+Winston supports triggering variation successes for all of the popular DOM events, however we suggest steering clear of mouse movement events given how frequently they trigger. The full list of supported events is `click`, `submit`, `focus`, `blur`, `change`, `mouseover`, `mouseout`, `mousedown`, `mouseup`, `keypress`, `keydown`, and `keyup`.
+
+To trigger an event in your client side code, simply call: `$winston->event('name-of-your-test', EVENT_TYPE)` where `EVENT_TYPE` is one of the events mentioned above. This method will then generate and return a DOM event string for you to output directly in your HTML, i.e.
+
+```php
+// returns: onclick="POP.Winston.event('name-of-your-test', 'SELECTED_VARIATION_ID', 'click');"
+// where SELECTED_VARIATION_ID is the variation id found to be optimal/randomized by Winston
+$winston->event('name-of-your-test', 'click');
+```
+
 ## Requirements
 
   1. PHP 5.3+
