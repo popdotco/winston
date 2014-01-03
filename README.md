@@ -45,7 +45,30 @@ $winston = new \Pop\Winston($config);
 
 #### Server Side Code
 
-This implementation is only an example of determining a route with minimal muss and fus.
+This implementation is only an example with minimal routing support to give you an idea for how to tie in the endpoints from the config file.
+
+```php
+<?php
+// include the composer autoloader
+require_once 'vendor/autoloader.php';
+
+// load your configuration array from a file
+$config = include('/path/to/config.php');
+
+// load the client library
+$winston = new \Pop\Winston($config);
+
+// we want the post data
+$data = $_POST;
+
+// determine which endpoint we're requesting
+$uri = getenv('REQUEST_URI');
+if ($uri == 'winston/event') {
+    $winston->recordEvent($data);
+} else if ($uri == 'winston/pageview') {
+    $winston->recordPageview($data);
+}
+```
 
 ## Requirements
 
