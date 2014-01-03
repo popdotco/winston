@@ -82,6 +82,15 @@ To trigger an event in your client side code, simply call: `$winston->event('nam
 $winston->event('name-of-your-test', 'click');
 ```
 
+Let's now bind a form submission event directly to a form as an example which will get attributed to the chosen variation. The order of using `event()` and `variation()` doesn't matter:
+
+```php
+<form <?= $winston->event('name-of-your-test', 'submit'); ?>>
+    <?= $winston->variation('name-of-your-test'); ?>
+    <button type="submit">Submit Form</button>
+</form>
+```
+
 ## Requirements
 
   1. PHP 5.3+
