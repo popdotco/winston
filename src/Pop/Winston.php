@@ -53,6 +53,18 @@ class Winston {
     public $activeTests = array();
 
     /**
+     * Contains the storage configuration options.
+     * @var array
+     */
+    public $storageConfig = array();
+
+    /**
+     * The current storage adapter for managing data.
+     * @var \Pop\Storage\DriverAbstract
+     */
+    public $storage = null;
+
+    /**
      * Cookie configuration values.
      * @var array
      */
@@ -207,9 +219,30 @@ class Winston {
      * - tests
      * - token
      */
-    public function recordPageview($pageviews = array(), $token)
+    public function recordPageview($postData = array())
     {
+        // don't record if bot detection is enabled and client is a bot
+        if ($this->getDetectBots() && $this->isBot()) {
+            return false;
+        }
 
+        // TODO: validation of data
+        if (empty($postData['token']) || !$this->isValidToken($postData['token'])) {
+            return false;
+        }
+
+        // trigger pageview recording for each test
+        if (empty($postData['tests'])) {
+            return false;
+        }
+
+        // load up the redis client
+        $client = $this->loadStorageAdapter('redis');
+
+        // add page view for every test
+        foreach ($postData['tests'] as $test) {
+            $client->addPageview($test);
+        }
     }
 
     /**
@@ -224,7 +257,23 @@ class Winston {
      */
     public function recordEvent($postData = array())
     {
+        // don't record if bot detection is enabled and client is a bot
+        if ($this->getDetectBots() && $this->isBot()) {
+            return false;
+        }
 
+        // TODO: validation of data
+        if (empty($postData['token']) || !$this->isValidToken($postData['token'])) {
+            return false;
+        } else if (empty($postData['test_id']) || empty($postData['variation_id'])) {
+            return false;
+        }
+
+        // load up the redis client
+        $client = $this->loadStorageAdapter('redis');
+
+        // pass off the data
+        $client->addWin($postData['test_id'], $postData['variation_id']);
     }
 
     /**
@@ -464,6 +513,10 @@ class Winston {
 
         // handle whether to detect and avoid bots
         $this->setDetectBots(isset($config['detectBots']) && $config['detectBots'] == true);
+
+        // TODO: remove hardcoding
+        // handle setting the adapter config (currently hardcoded to redis)
+        $this->setStorageConfig($config['redis']);
     }
 
     /**
@@ -479,6 +532,18 @@ class Winston {
     }
 
     /**
+     * Handle setting the storage configuration options.
+     *
+     * @access  public
+     * @param   string  $array
+     * @return  void
+     */
+    public function setStorageConfig($config)
+    {
+        $this->storageConfig = $config;
+    }
+
+    /**
      * Whether bots are being detected.
      *
      * @access  public
@@ -487,6 +552,17 @@ class Winston {
     public function getDetectBots()
     {
         return $this->detectBots;
+    }
+
+    /**
+     * Return the storage configuration options.
+     *
+     * @access  public
+     * @return  bool
+     */
+    public function getStorageConfig()
+    {
+        return $this->storageConfig;
     }
 
     /**
@@ -804,6 +880,22 @@ class Winston {
         }
 
         return $this->isBot;
+    }
+
+    /**
+     * Handle loading/setting the current storage adapter.
+     */
+    public function loadStorageAdapter($adapter = 'redis')
+    {
+        if (!empty($this->storage)) {
+            return $this->storage;
+        }
+
+        if ($adapter == 'redis') {
+            return $this->storage = new \Pop\Storage\Driver\Redis($this->getStorageConfig());
+        }
+
+        return false;
     }
 
 }
