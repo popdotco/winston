@@ -12,7 +12,7 @@ Winston is in active development and pre-alpha. You can contribute, but it's not
 
 This example uses short tags, but you don't have to if they aren't enabled. In this example, we're checking to see if varying the page's headline/tagline has any affect on the frequency of clicking a button directly below it.
 
-```html
+```php
 <?php
 // include the composer autoloader
 require_once 'vendor/autoloader.php';
