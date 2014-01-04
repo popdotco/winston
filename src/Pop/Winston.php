@@ -173,7 +173,7 @@ class Winston {
      * @access  public
      * @return  string
      */
-    public function javascript()
+    public function javascript($includeJquery = true)
     {
         $token = $this->generateToken();
 
@@ -324,10 +324,6 @@ class Winston {
      */
     public function getTest($test_id)
     {
-        if (empty($this->tests)) {
-            $this->getTests();
-        }
-
         return isset($this->tests[$test_id]) ? $this->tests[$test_id] : false;
     }
 
@@ -335,11 +331,12 @@ class Winston {
      * Retrieve and cache locally all tests.
      *
      * @access  public
+     * @param   mixed   $tests
      * @return  void
      */
-    public function getTests()
+    public function addTests($tests)
     {
-        $this->tests = Config::get(NULL, 'ab');
+        $this->tests = $tests;
     }
 
     /**
@@ -517,6 +514,11 @@ class Winston {
         // TODO: remove hardcoding
         // handle setting the adapter config (currently hardcoded to redis)
         $this->setStorageConfig($config['redis']);
+
+        // add tests
+        if (!empty($config['tests'])) {
+            $this->addTests($config['tests']);
+        }
     }
 
     /**
