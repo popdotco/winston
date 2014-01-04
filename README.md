@@ -12,7 +12,7 @@ Winston is in active development and pre-alpha. You can contribute, but it's not
 
 This example uses short tags, but you don't have to if they aren't enabled. In this example, we're checking to see if varying the page's headline/tagline has any affect on the frequency of clicking a button directly below it.
 
-```html
+```php
 <?php
 // include the composer autoloader
 require_once 'vendor/autoloader.php';
@@ -68,6 +68,54 @@ if ($uri == 'winston/event') {
 } else if ($uri == 'winston/pageview') {
     $winston->recordPageview($data);
 }
+```
+
+## Advanced Usage: Adding Events Within Variations via Templating
+
+With Winston, you can add events directly within your variation text/html. In each variation, you can use the syntax `{{EVENT_NAME}}` where `EVENT_NAME` is one of the supported client events found in the section below. Winston will internally find and replace these matching template strings with DOM event handlers. 
+
+Here's an example of a test you can setup in your configuration file which utilizes the basic template engine:
+
+```php
+<?php
+$config = array(
+    'tests' => array(
+        'signup-submit-button-test' => array(
+            'description' => 'A sample test',
+            'variations' => array(
+                array(
+                    'id'    => 'submit-default',
+                    'text'  => '<button type="submit" {{click}}>Submit</button>'
+                ),
+                array(
+                    'id'    => 'submit-signup-now',
+                    'text'  => '<button type="submit" {{click}}>Signup Now</button>'
+                ),
+            )
+        )
+    )
+);
+```
+
+## Supported Client Side Events
+
+Winston supports triggering variation successes for all of the popular DOM events, however we suggest steering clear of mouse movement events given how frequently they trigger. The full list of supported events is `click`, `submit`, `focus`, `blur`, `change`, `mouseover`, `mouseout`, `mousedown`, `mouseup`, `keypress`, `keydown`, and `keyup`.
+
+To trigger an event in your client side code, simply call: `$winston->event('name-of-your-test', EVENT_TYPE)` where `EVENT_TYPE` is one of the events mentioned above. This method will then generate and return a DOM event string for you to output directly in your HTML, i.e.
+
+```php
+// returns: onclick="POP.Winston.event('name-of-your-test', 'SELECTED_VARIATION_ID', 'click');"
+// where SELECTED_VARIATION_ID is the variation id found to be optimal/randomized by Winston
+$winston->event('name-of-your-test', 'click');
+```
+
+Let's now bind a form submission event directly to a form as an example which will get attributed to the chosen variation. The order of using `event()` and `variation()` doesn't matter:
+
+```php
+<form <?= $winston->event('name-of-your-test', 'submit'); ?>>
+    <?= $winston->variation('name-of-your-test'); ?>
+    <button type="submit">Submit Form</button>
+</form>
 ```
 
 ## Requirements
