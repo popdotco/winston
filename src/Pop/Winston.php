@@ -360,7 +360,7 @@ class Winston {
             $variation = $this->randomVariation($test);
         } else {
             // generate a random float between 0 and 1
-            $rand - mt_rand() / mt_getrandmax();
+            $rand = mt_rand() / mt_getrandmax();
             if ($rand < $this->randomPickPercentage) {
                 $variation = $this->randomVariation($test);
             } else {
@@ -373,11 +373,11 @@ class Winston {
         }
 
         // set the active variation
-        $this->activeTests[$test['id']] = $variation['id'];
+        $this->activeTests[$variation['id']] = $variation['id'];
 
         // handle find and replace on variation text for templating
         $variation['text'] = $this->replaceTemplateTags(
-            $test_id,
+            $test['id'],
             $variation['id'],
             $variation['text']
         );
@@ -624,7 +624,7 @@ class Winston {
         $this->tests[$test_id]['variation'] = $variation;
 
         // set as the user's variation
-        $this->setCookieVariation($variation['id']);
+        $this->setCookieVariation($test_id, $variation['id']);
     }
 
     /**
