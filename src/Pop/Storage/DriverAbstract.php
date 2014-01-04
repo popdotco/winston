@@ -1,6 +1,7 @@
 <?php
+namespace Pop\Storage;
 
-abstract class AB_Storage_Driver_Abstract {
+abstract class DriverAbstract {
 
     /**
      * Default constructor with optional config param required.
