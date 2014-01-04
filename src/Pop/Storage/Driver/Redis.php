@@ -145,10 +145,11 @@ class Redis extends DriverAbstract {
      * Create the test object hash if it doesnt already exist.
      *
      * @access  public
+     * @param   string  $test_id
      * @param   array   $test
      * @return  void
      */
-    public function createTestIfDne($test)
+    public function createTestIfDne($test_id, $test)
     {
         $this->getClient();
 
