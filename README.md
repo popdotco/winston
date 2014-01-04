@@ -8,6 +8,13 @@ Winston is in active development and pre-alpha. You can contribute, but it's not
 
 ## Usage
 
+#### Configuration
+
+Winston requires a bulky configuration array of settings, tests, and test variations. For a full picture of what a configuration array looks like, check out the basic example config file:
+
+https://github.com/popdotco/winston/blob/master/examples/config.php
+
+
 #### Client Side Code
 
 This example uses short tags, but you don't have to if they aren't enabled. In this example, we're checking to see if varying the page's headline/tagline has any affect on the frequency of clicking a button directly below it.
