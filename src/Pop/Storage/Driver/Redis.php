@@ -156,7 +156,7 @@ class Redis extends DriverAbstract {
         $this->getClient();
 
         // create a timestamp
-        $now = new DateTime('now', new DateTimeZone('UTC'));
+        $now = new \DateTime('now', new \DateTimeZone('UTC'));
         $now = $now->format('U');
 
         // create test if DNE
@@ -187,7 +187,7 @@ class Redis extends DriverAbstract {
         $this->getClient();
 
         // create a timestamp
-        $now = new DateTime('now', new DateTimeZone('UTC'));
+        $now = new \DateTime('now', new \DateTimeZone('UTC'));
         $now = $now->format('U');
 
         // create variation if DNE
@@ -221,7 +221,7 @@ class Redis extends DriverAbstract {
         $this->getClient();
 
         // transaction timestamp
-        $now = new DateTime('now', new DateTimeZone('UTC'));
+        $now = new \DateTime('now', new \DateTimeZone('UTC'));
         $now = $now->format('U');
 
         // begin a transaction
