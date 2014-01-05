@@ -345,21 +345,31 @@ class Winston {
         error_log('STORED TESTS:');
         error_log(print_r($storedTests, true));
 
-        // TODO: for any tests not returned from storage driver, create
-        foreach ($tests as $test_id => $test) {
-            $testIsStored = false;
-
-            foreach ($storedTests as $k => $v) {
-                if ($storedTest['id'] == $test_id) {
-                    $testIsStored = true;
-                    break;
-                }
-            }
-
-            if (!$testIsStored) {
+        if (empty($storedTests)) {
+            // TODO: for any tests not returned from storage driver, create
+            foreach ($tests as $test_id => $test) {
                 $this->storage->createTestIfDne($test_id, $test);
                 foreach ($test['variations'] as $variation) {
                     $this->storage->createVariationIfDne($variation, $test_id);
+                }
+            }
+        } else {
+            // TODO: for any tests not returned from storage driver, create
+            foreach ($tests as $test_id => $test) {
+                $testIsStored = false;
+
+                foreach ($storedTests as $k => $v) {
+                    if ($storedTest['id'] == $test_id) {
+                        $testIsStored = true;
+                        break;
+                    }
+                }
+
+                if (!$testIsStored) {
+                    $this->storage->createTestIfDne($test_id, $test);
+                    foreach ($test['variations'] as $variation) {
+                        $this->storage->createVariationIfDne($variation, $test_id);
+                    }
                 }
             }
         }
