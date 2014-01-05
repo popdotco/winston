@@ -178,11 +178,11 @@ class Redis extends DriverAbstract {
      * Create the variation object hash if it doesnt already exist.
      *
      * @access  public
-     * @param   array   $variation
      * @param   string  $test_id
+     * @param   array   $variation
      * @return  void
      */
-    public function createVariationIfDne($variation, $test_id)
+    public function createVariationIfDne($test_id, $variation)
     {
         $this->getClient();
 

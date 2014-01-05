@@ -41,20 +41,21 @@ abstract class DriverAbstract {
      * Create/store the test object if it doesnt already exist.
      *
      * @access  public
+     * @param   string  $test_id
      * @param   array   $test
      * @return  void
      */
-    abstract public function createTestIfDne($test);
+    abstract public function createTestIfDne($test_id, $test);
 
     /**
      * Create/store the variation object if it doesnt already exist.
      *
      * @access  public
-     * @param   array   $variation
      * @param   string  $test_id
+     * @param   array   $variation
      * @return  void
      */
-    abstract public function createVariationIfDne($variation, $test_id);
+    abstract public function createVariationIfDne($test_id, $variation);
 
     /**
      * Record a pageview on a particular test and variation.
