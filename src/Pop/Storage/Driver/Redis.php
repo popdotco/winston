@@ -126,6 +126,8 @@ class Redis extends DriverAbstract {
      */
     public function getVariations($test_id)
     {
+        $this->getClient();
+
         // find all variation ids by test id
         $variation_ids = $this->client->lrange('test:' . $test['test_id'] . ':variation.ids', 0, -1);
         if (!empty($variation_ids)) {
@@ -255,7 +257,6 @@ class Redis extends DriverAbstract {
      */
     public function addWin($test_id, $variation_id)
     {
-        // ensure client loaded
         $this->getClient();
 
         // increment the object hash count

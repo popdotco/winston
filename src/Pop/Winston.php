@@ -84,13 +84,13 @@ class Winston {
      */
     public function __construct($config = array())
     {
+        if (!empty($config)) {
+            $this->setConfig($config);
+        }
+
         // basic session implementation
         if (session_status() !== PHP_SESSION_ACTIVE) {
             session_start();
-        }
-
-        if (!empty($config)) {
-            $this->setConfig($config);
         }
     }
 
@@ -342,6 +342,7 @@ class Winston {
         $this->loadStorageAdapter();
         $storedTests = $this->storage->getTests();
 
+        error_log('STORED TESTS:');
         error_log(print_r($storedTests, true));
 
         // TODO: for any tests not returned from storage driver, create
@@ -363,7 +364,20 @@ class Winston {
             }
         }
 
-        // TODO: merge stored test data with config tests
+        // retrieve all test data now that they're newly modified
+        $storedTests = $this->storage->getTests();
+
+        error_log('STORED TESTS AFTER CREATE:');
+        error_log(print_r($storedTests, true));
+
+        /*
+        foreach ($storedTests as $test) {
+            if (!isset($tests[$storedTests['id']])) {
+                $tests[$storedTests['id']] = $storedTests;
+            }
+        }
+        */
+        die('done for now');
     }
 
     /**
@@ -535,6 +549,11 @@ class Winston {
             }
         }
 
+        // handle overriding session vars
+        if (!empty($config['session'])) {
+            $this->setSession($config['session']);
+        }
+
         // handle whether to detect and avoid bots
         $this->setDetectBots(isset($config['detectBots']) && $config['detectBots'] == true);
 
@@ -545,6 +564,34 @@ class Winston {
         // add tests
         if (!empty($config['tests'])) {
             $this->addTests($config['tests']);
+        }
+    }
+
+    /**
+     * Handles setting the session config values if any overrides are needed.
+     *
+     * @access  public
+     * @param   array   $config
+     * @return  void
+     */
+    public function setSession($config)
+    {
+        $validSessionKeys = array(
+            'save_path', 'name', 'save_handler', 'auto_start', 'gc_probability', 'gc_divisor',
+            'gc_maxlifetime', 'serialize_handler', 'cookie_lifetime',
+            'cookie_path', 'cookie_domain', 'cookie_secure', 'cookie_httponly',
+            'use_strict_mode', 'use_cookies', 'use_only_cookies',
+            'referer_check', 'entropy_file', 'entropy_length', 'cache_limiter',
+            'cache_expire', 'use_trans_sid', 'bug_compat_42', 'bug_compat_warn',
+            'hash_function', 'hash_bits_per_character'
+        );
+
+        foreach ($config as $key => $val) {
+            if (!array_key_exists($key, $validSessionKeys)) {
+                continue;
+            }
+
+            @ini_set('session.' . $key, $val);
         }
     }
 

@@ -31,6 +31,12 @@ return array(
         'secure'    => false
     ),
 
+    // session overrides via ini_set. almost all vars allowed:
+    // http://www.php.net/manual/en/session.configuration.php
+    'session' => array(
+        'save_path' => '/tmp'
+    ),
+
     // the API endpoints you will build to receive requests
     // create your own endpoints on your domain and alter here to match
     'endpoints' => array(
