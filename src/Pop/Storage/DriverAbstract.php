@@ -61,10 +61,11 @@ abstract class DriverAbstract {
      * Record a pageview on a particular test and variation.
      *
      * @access  public
-     * @param   array   $tests
+     * @param   string  $test_id
+     * @param   array   $variation
      * @return  mixed
      */
-    abstract public function addPageview($test);
+    abstract public function addPageview($test_id, $variation);
 
     /**
      * Record success/completion of a test variation.

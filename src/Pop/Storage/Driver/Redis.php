@@ -129,7 +129,7 @@ class Redis extends DriverAbstract {
         $this->getClient();
 
         // find all variation ids by test id
-        $variation_ids = $this->client->lrange('test:' . $test['test_id'] . ':variation.ids', 0, -1);
+        $variation_ids = $this->client->lrange('test:' . $test_id . ':variation.ids', 0, -1);
         if (!empty($variation_ids)) {
             $variations = $this->client->pipeline(function ($pipe) use ($variation_ids) {
                 foreach ($variation_ids as $id) {
@@ -160,13 +160,13 @@ class Redis extends DriverAbstract {
         $now = $now->format('U');
 
         // create test if DNE
-        if (!$this->client->hexists('test:' . $test['test_id'], 'pageviews')) {
+        if (!$this->client->hexists('test:' . $test_id, 'pageviews')) {
             // add test hash key to list
-            $this->client->rpush('test.ids', $test['test_id']);
+            $this->client->rpush('test.ids', $test_id);
 
             // create test hash
-            $this->client->hmset('test:' . $test['test_id'], array(
-                'id'            => $test['test_id'],
+            $this->client->hmset('test:' . $test_id, array(
+                'id'            => $test_id,
                 'pageviews'     => 0,
                 'description'   => $test['description'],
                 'timestamp'     => $now
@@ -191,13 +191,13 @@ class Redis extends DriverAbstract {
         $now = $now->format('U');
 
         // create variation if DNE
-        if (!$this->client->hexists('variation:' . $variation['variation_id'], 'pageviews')) {
+        if (!$this->client->hexists('variation:' . $variation['id'], 'pageviews')) {
             // add variation hash key to list
-            $this->client->rpush('variation.ids', $variation['variation_id']);
+            $this->client->rpush('variation.ids', $variation['id']);
 
             // create variation hash
-            $this->client->hmset('variation:' . $variation['variation_id'], array(
-                'id'            => $variation['variation_id'],
+            $this->client->hmset('variation:' . $variation['id'], array(
+                'id'            => $variation['id'],
                 'test_id'       => $test_id,
                 'pageviews'     => 0,
                 'wins'          => 0,
@@ -205,7 +205,7 @@ class Redis extends DriverAbstract {
             ));
 
             // associate variation to test
-            $this->client->rpush('test:' . $test['test_id'] . ':variation.ids', $variation['variation_id']);
+            $this->client->rpush('test:' . $test_id . ':variation.ids', $variation['id']);
         }
     }
 
@@ -213,10 +213,11 @@ class Redis extends DriverAbstract {
      * Record a pageview on a particular test and variation.
      *
      * @access  public
-     * @param   array   $tests
+     * @param   string  $test_id
+     * @param   array   $variation
      * @return  mixed
      */
-    public function addPageview($test)
+    public function addPageview($test_id, $variation)
     {
         $this->getClient();
 
@@ -227,15 +228,15 @@ class Redis extends DriverAbstract {
         // begin a transaction
         $responses = $this->client->transaction(function($tx) {
             // increment the object hash counts
-            $this->client->hincrby('test:' . $test['test_id'], 'pageviews', 1);
-            $this->client->hincrby('variation:' . $test['variation_id'], 'pageviews', 1);
+            $this->client->hincrby('test:' . $test_id, 'pageviews', 1);
+            $this->client->hincrby('variation:' . $variation['id'], 'pageviews', 1);
 
             // increment the sorted set counts for pageview rankings
-            $testPageviews = $this->client->zincrby('tests:sorted_by_views', 1, $test['test_id']);
-            $variationPageviews = $this->client->zincrby('variations:sorted_by_views', 1, $test['variation_id']);
+            $testPageviews = $this->client->zincrby('tests:sorted_by_views', 1, $test_id);
+            $variationPageviews = $this->client->zincrby('variations:sorted_by_views', 1, $variation['id']);
 
             // retrieve the hash wins
-            $variationWins = $this->client->hget('variations', $test['variation_id'], 'wins');
+            $variationWins = $this->client->hget('variations', $variation['id'], 'wins');
 
             // calculate ranking change
             $rank = 0.00;
@@ -244,7 +245,7 @@ class Redis extends DriverAbstract {
             }
 
             // update the variation rankings
-            $this->client->zadd('variations:sorted_by_rank', $rank, $test['variation_id']);
+            $this->client->zadd('variations:sorted_by_rank', $rank, $variation['id']);
         });
     }
 

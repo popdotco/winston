@@ -240,8 +240,12 @@ class Winston {
         $client = $this->loadStorageAdapter('redis');
 
         // add page view for every test
-        foreach ($postData['tests'] as $test) {
-            $client->addPageview($test);
+        foreach ($postData['tests'] as $test_id) {
+            // find the variation id
+            $variation = $this->getVariation($test_id);
+            if (!empty($variation)) {
+                $client->addPageview($test_id, $variation);
+            }
         }
     }
 
