@@ -20,7 +20,8 @@ return array(
     'redis' => array(
         'scheme'    => 'tcp',
         'host'      => '127.0.0.1',
-        'port'      => '6379'
+        'port'      => '6379',
+        'prefix'    => NULL
     ),
 
     // cookie configuration settings (default 1 year expiry)
