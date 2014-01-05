@@ -10,26 +10,39 @@ namespace Pop;
 class Winston {
 
     /**
-     * The percentage of the time we wish to pick a random variation, if
-     * machine learning is turned on.
-     * @var float
-     */
-    public $randomPickPercentage = .10;
-
-    /**
-     * Whether the machine learning algorithm is enabled or not.
-     * @var bool
-     */
-    public $enableMachineLearning = true;
-
-    /**
-     * The confidence interval before machine learnings kicks in.
+     * The confidence interval before machine learnings kicks in. If the value
+     * is NULL, FALSE, 0, or empty string, we won't use confidence intervals
+     * when determining which variation to choose. If a float, i.e. .90 or .95,
+     * we only pick the most popular variation if there's statistically
+     * significant data backing it up.
+     *
      * @var float
      */
     public $confidenceInterval = .95;
 
     /**
+     * Whether the machine learning algorithm is enabled or not. If enabled, we
+     * first check for a confidence interval ($confidenceInterval) and then fall
+     * back to picking a random result a user defined percentage of the time
+     * ($randomPickPercentage). The random pick handler is not based on statistics
+     * and will merely pick the current most popular result the majority of the
+     * time and a random result the other percentage.
+     *
+     * @var bool
+     */
+    public $enableMachineLearning = true;
+
+    /**
+     * The percentage of the time we wish to pick a random variation, if
+     * machine learning is turned on.
+     *
+     * @var float
+     */
+    public $randomPickPercentage = .10;
+
+    /**
      * Whether or not to detect bots.
+     *
      * @var bool
      */
     public $detectBots = false;
@@ -157,12 +170,19 @@ class Winston {
             return '';
         }
 
-        // return tracking event
-        return 'on' . $trimType . '="POP.Winston.event(\''
+        // the event binding
+        $event = 'POP.Winston.event(\''
             . $test_id . '\', \''
             . $variation_id . '\', \''
             . $trimType
-            . '\');"';
+            . '\');';
+
+        // special case for manual events
+        if ($trimType != 'manual') {
+            $event = 'on' . $trimType . '="' . $event . '"';
+        }
+
+        return $event;
     }
 
     /**
@@ -290,6 +310,11 @@ class Winston {
      */
     public function replaceTemplateTags($test_id, $variation_id, $text)
     {
+        // return early if no template tags found
+        if (strpos($text, '{{') === FALSE) {
+            return $text;
+        }
+
         // valid list of events
         $validEvents = $this->getValidEvents();
         foreach ($validEvents as $event) {
@@ -298,6 +323,7 @@ class Winston {
                 // generate event binding
                 $eventBinding = $this->generateEvent($test_id, $variation_id, $event);
 
+                // perform a string replace of the key with the binding
                 $text = str_replace($templateKey, $eventBinding, $text);
             }
         }
@@ -306,7 +332,14 @@ class Winston {
     }
 
     /**
-     * Returns an array of all valid event types.
+     * Returns an array of all valid event types. All events are DOM based
+     * except for 'manual', which is a special case that implies the user
+     * just wants the line returned so they can add to global javascript and
+     * trigger themselves. For example, store the event in a function which
+     * they can call from an included JS file:
+     *
+     * function triggerTestWin() { <?= $winston->event('example-test', 'manual') ?> }
+     *
      *
      * @access  public
      * @return  array
@@ -315,7 +348,7 @@ class Winston {
     {
         return array(
             'click', 'submit', 'focus', 'blur', 'change', 'mouseover', 'mouseout',
-            'mousedown', 'mouseup', 'keypress', 'keydown', 'keyup'
+            'mousedown', 'mouseup', 'keypress', 'keydown', 'keyup', 'manual'
         );
     }
 
@@ -332,7 +365,8 @@ class Winston {
     }
 
     /**
-     * Retrieve and cache locally all tests.
+     * Retrieve and cache all tests locally. Useful as we often have a separation
+     * of including a test variation on a page from it's event.
      *
      * @access  public
      * @param   mixed   $tests
@@ -340,58 +374,46 @@ class Winston {
      */
     public function addTests($tests)
     {
+        // ensure all tests and variations are stored in the database
+        $this->loadStorageAdapter();
+        foreach ($tests as $test_id => $test) {
+            $this->storage->createTestIfDne($test_id, $test);
+            foreach ($test['variations'] as $variation) {
+                $this->storage->createVariationIfDne($test_id, $variation);
+            }
+        }
+
+        // get stored tests and merge with config tests
+        // we can't just used stored tests because some may no longer exist in config
+        $storedTests = $this->storage->getTests();
+        foreach ($storedTests as $storedTest) {
+            if (!isset($tests[$storedTest['id']])) {
+                continue;
+            }
+
+            $tests[$storedTest['id']]['pageviews'] = $storedTest['pageviews'];
+
+            // check for variation matches
+            if (empty($storedTest['variations'])) {
+                continue;
+            }
+
+            foreach ($storedTest['variations'] as $variation) {
+                if (!isset($tests[$storedTest['id']]['variations'][$variation['id']])) {
+                    continue;
+                }
+
+                $tests[$storedTest['id']]['variations'][$variation['id']]['pageviews'] = $variation['pageviews'];
+                $tests[$storedTest['id']]['variations'][$variation['id']]['wins'] = $variation['wins'];
+            }
+        }
+
+
+        // merge stored tests with existing tests
         $this->tests = $tests;
 
-        // get test data from our storage driver
-        $this->loadStorageAdapter();
-        $storedTests = $this->storage->getTests();
-
         error_log('STORED TESTS:');
-        error_log(print_r($storedTests, true));
-
-        if (empty($storedTests)) {
-            // TODO: for any tests not returned from storage driver, create
-            foreach ($tests as $test_id => $test) {
-                $this->storage->createTestIfDne($test_id, $test);
-                foreach ($test['variations'] as $variation) {
-                    $this->storage->createVariationIfDne($test_id, $variation);
-                }
-            }
-        } else {
-            // TODO: for any tests not returned from storage driver, create
-            foreach ($tests as $test_id => $test) {
-                $testIsStored = false;
-
-                foreach ($storedTests as $k => $storedTest) {
-                    if ($storedTest['id'] == $test_id) {
-                        $testIsStored = true;
-                        break;
-                    }
-                }
-
-                if (!$testIsStored) {
-                    $this->storage->createTestIfDne($test_id, $test);
-                    foreach ($test['variations'] as $variation) {
-                        $this->storage->createVariationIfDne($test_id, $variation);
-                    }
-                }
-            }
-        }
-
-        // retrieve all test data now that they're newly modified
-        $storedTests = $this->storage->getTests();
-
-        error_log('STORED TESTS AFTER CREATE:');
-        error_log(print_r($storedTests, true));
-
-        /*
-        foreach ($storedTests as $test) {
-            if (!isset($tests[$storedTests['id']])) {
-                $tests[$storedTests['id']] = $storedTests;
-            }
-        }
-        */
-        die('done for now');
+        error_log(print_r($this->tests, true));
     }
 
     /**
@@ -407,28 +429,32 @@ class Winston {
      */
     public function pickVariation($test)
     {
-        // TODO: check confidence intervals for optimal variation
-        // $variation = $this->optimalVariationCI($test);
-
-        // if machine learning is disabled, always pick random
+        // if machine learning is disabled, just pick random
         if (!$this->enableMachineLearning) {
             $variation = $this->randomVariation($test);
         } else {
-            // generate a random float between 0 and 1
-            $rand = mt_rand() / mt_getrandmax();
-            if ($rand < $this->randomPickPercentage) {
-                $variation = $this->randomVariation($test);
-            } else {
-                $variation = $this->optimalVariation($test);
+            // check confidence intervals for optimal variation
+            if (!empty($this->confidenceInterval)) {
+                $variation = $this->optimalVariationCI($test);
+            }
+
+            // if no variation was found, we likely don't have a statistically
+            // significant result so fall back to the optimal variation method
+            if (!empty($variation)) {
+                // generate a random float between 0 and 1
+                $rand = mt_rand() / mt_getrandmax();
+                if ($rand < $this->randomPickPercentage) {
+                    $variation = $this->randomVariation($test);
+                } else {
+                    $variation = $this->optimalVariation($test);
+                }
             }
         }
 
+        // if still no variation, we simply don't have any
         if (empty($variation)) {
             return false;
         }
-
-        // set the active variation
-        $this->activeTests[$variation['id']] = $variation['id'];
 
         // handle find and replace on variation text for templating
         $variation['text'] = $this->replaceTemplateTags(
@@ -436,6 +462,9 @@ class Winston {
             $variation['id'],
             $variation['text']
         );
+
+        // set the selected variation as active
+        $this->activeTests[$variation['id']] = $variation['id'];
 
         return $variation;
     }
@@ -449,12 +478,15 @@ class Winston {
      */
     public function randomVariation($test)
     {
-        $numVariations = count($test['variations']);
-        if ($numVariations == 0) {
+        if (empty($test['variations'])) {
             return false;
         }
 
-        return $test['variations'][rand(0, $numVariations - 1)];
+        $variation_id = array_rand($test['variations']);
+        $variation = $test['variations'][$variation_id];
+        $variation['id'] = $variation_id;
+
+        return $variation;
     }
 
     /**
@@ -465,23 +497,24 @@ class Winston {
      * @param   array   &$test
      * @return  null|array
      */
-    public function optimalVariation(&$test)
+    public function optimalVariation($test)
     {
         $optimal = NULL;
         $highestPercentage = 0.00;
 
-        foreach ($test['variations'] as $variation) {
+        foreach ($test['variations'] as $variation_id => $variation) {
+            // skip if no wins or views
             if ($variation['pageviews'] == 0 || $variation['wins'] == 0) {
                 continue;
             }
 
             // calculate percentage successes
             $percentage = $variation['wins'] / $variation['pageviews'];
-            $test['variations'][$variation]['success_rate'] = $percentage;
 
             // determine if setting a new optimal
             if ($percentage > $highestPercentage) {
-                $optimal = $test['variations'][$variation];
+                $optimal = $variation;
+                $optimal['id'] = $variation_id;
             }
         }
 
@@ -513,7 +546,7 @@ class Winston {
         $totalWins = 0.00;
 
         // calculate the average pageviews and wins
-        foreach ($test['variations'] as $variation) {
+        foreach ($test['variations'] as $variation_id => $variation) {
             $totalPageviews += $variation['pageviews'];
             $totalWins += $variation['wins'] * $variation['pageviews'];
         }
@@ -521,23 +554,40 @@ class Winston {
         $avgPageviews = $totalPageviews / count($test['variations']);
         $avgWins = $totalWins / count($test['variations']);
 
-        // calculate average bayes for each variation
-        foreach ($test['variations'] as $k => $variation) {
-            $bayes =
-                (($avgPageviews * $avgWins) + $test['variations'][$k]['wins'])
-                / $test['variations'][$k]['pageviews'] + $avgPageviews;
+        // store the calculated bayes avg. for determining CI
+        $avgBayes = array();
 
-            $test['variations'][$k]['bayes'] = $bayes;
+        // calculate average bayes for each variation
+        foreach ($test['variations'] as $variation_id => $variation) {
+            if (($test['variations'][$variation_id]['pageviews'] + $avgPageviews) == 0) {
+                $bayes = 0.00;
+            } else {
+                $bayes =
+                    (($avgPageviews * $avgWins) + $test['variations'][$variation_id]['wins'])
+                    / ($test['variations'][$variation_id]['pageviews'] + $avgPageviews);
+            }
+
+            // add to the calculated bayes values
+            $avgBayes[] = $bayes;
+
+            // add bayes value to the variation
+            $variation['bayes'] = $bayes;
 
             // check for a new optimal variation
             if ($bayes > $optimalBayes) {
                 $optimalBayes = $bayes;
                 $optimalVariation = $variation;
+                $optimalVariation['id'] = $variation_id;
             }
         }
 
+        error_log('Tests w/ variations and bayes averages calculated:');
+        error_log(print_r($test, true));
+
         // calculate confidence interval for the best overall
-        $confidence = min($a, $b) / max($a, $b);
+        $confidence = min($avgBayes) / max($avgBayes);
+
+        error_log('Confidence: ' . $confidence);
 
         // return how confident we are
         if ($confidence < $this->confidenceInterval) {
@@ -545,6 +595,32 @@ class Winston {
         }
 
         return $optimalVariation;
+    }
+
+    /**
+     * TODO: For individuals who want to manually prune their tests without
+     * having to touch the storage engine directly.
+     *
+     * @access  public
+     * @param   string  $test_id
+     * @return  bool
+     */
+    public function deleteTestById($test_id)
+    {
+
+    }
+
+    /**
+     * TODO: For individuals who want to manually prune their test variations
+     * without having to touch the storage engine directly.
+     *
+     * @access  public
+     * @param   string  $test_id
+     * @return  bool
+     */
+    public function deleteTestVariationById($test_id, $variation_id)
+    {
+
     }
 
     /**

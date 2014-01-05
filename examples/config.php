@@ -63,28 +63,22 @@ return array(
             // in the format of {{EVENT_NAME}} which will be replaced by a
             // javascript DOM event to trigger a "win" in it's place
             'variations' => array(
-                array(
-                    'id'    => 'upgrade-now-avoid-losing',
+                'upgrade-now-avoid-losing' => array(
                     'text'  => '<span class="highlight">Upgrade now</span> to avoid losing'
                 ),
-                array(
-                    'id'    => 'subscribe-now-avoid-losing',
+                'subscribe-now-avoid-losing' => array(
                     'text'  => '<span class="highlight">Subscribe now</span> to avoid losing'
                 ),
-                array(
-                    'id'    => 'pay-now-avoid-losing',
+                'pay-now-avoid-losing' => array(
                     'text'  => '<span class="highlight">Pay now</span> to avoid losing'
                 ),
-                array(
-                    'id'    => 'upgrade-now-keep',
-                    'text'  => '<span class="highlight">Upgrade now</span> to keep'
+                'upgrade-now-keep' => array(
+                    'text' => '<span class="highlight">Upgrade now</span> to keep'
                 ),
-                array(
-                    'id'    => 'subscribe-now-keep',
+                'subscribe-now-keep' => array(
                     'text'  => '<span class="highlight">Subscribe now</span> to keep'
                 ),
-                array(
-                    'id'    => 'pay-now-keep',
+                'pay-now-keep' => array(
                     'text'  => '<span class="highlight">Pay now</span> to keep'
                 )
             )
