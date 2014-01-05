@@ -354,7 +354,7 @@ class Winston {
             foreach ($tests as $test_id => $test) {
                 $this->storage->createTestIfDne($test_id, $test);
                 foreach ($test['variations'] as $variation) {
-                    $this->storage->createVariationIfDne($variation, $test_id);
+                    $this->storage->createVariationIfDne($test_id, $variation);
                 }
             }
         } else {
@@ -362,7 +362,7 @@ class Winston {
             foreach ($tests as $test_id => $test) {
                 $testIsStored = false;
 
-                foreach ($storedTests as $k => $v) {
+                foreach ($storedTests as $k => $storedTest) {
                     if ($storedTest['id'] == $test_id) {
                         $testIsStored = true;
                         break;
@@ -372,7 +372,7 @@ class Winston {
                 if (!$testIsStored) {
                     $this->storage->createTestIfDne($test_id, $test);
                     foreach ($test['variations'] as $variation) {
-                        $this->storage->createVariationIfDne($variation, $test_id);
+                        $this->storage->createVariationIfDne($test_id, $variation);
                     }
                 }
             }
