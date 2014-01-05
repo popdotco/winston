@@ -1,10 +1,10 @@
+## Status
+
+Winston is *pre-alpha* and in *active development*. You can contribute, but it's not ready for showtime. In fact, it's not even bug free at this point and is undergoing heavy development and testing.
+
 # About
 
 Winston is a AB/split/multivariate testing library utilizing Redis and a basic machine learning algorithm for automatically displaying the most successful test variations. Winston also has the ability to employ confidence interval checks on your test variation performance to ensure that randomization of variations continues to occur until Winston is confident that a test variation is indeed statistically performing better than the others.
-
-## Status
-
-Winston is in active development and pre-alpha. You can contribute, but it's not ready for showtime.
 
 ## Usage
 
