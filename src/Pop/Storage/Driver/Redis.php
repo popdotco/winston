@@ -59,7 +59,7 @@ class Redis extends DriverAbstract {
             $host   = empty($this->config['host']) ? '127.0.0.1' : $this->config['host'];
             $port   = empty($this->config['port']) ? '6379' : $this->config['port'];
 
-            $this->client = new Predis\Client(array(
+            $this->client = new \Predis\Client(array(
                 'prefix'    => 'pop-ab:',
                 'scheme'    => $scheme,
                 'host'      => $host,
