@@ -124,6 +124,9 @@ class Winston {
         if (session_status() !== PHP_SESSION_ACTIVE) {
             session_start();
         }
+
+        // generate session token early to avoid 'headers already sent' issues
+        $this->generateToken();
     }
 
     /**
