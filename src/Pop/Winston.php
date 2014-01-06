@@ -212,7 +212,7 @@ class Winston {
      * @access  public
      * @return  string
      */
-    public function javascript($includeJquery = true)
+    public function javascript()
     {
         $token = $this->generateToken();
 
@@ -223,13 +223,16 @@ class Winston {
 
         // check if disabling winston
         $isDisabled = $this->getDetectBots() && $this->isBot() ? 'true' : 'false';
-        $output .= 'POP.Winston.disabled = ' . $isDisabled . ';';
+        $output .= 'POP.Winston.disabled = ' . $isDisabled . ';' . PHP_EOL;
 
         // generate api endpoint urls
-        $output .= 'POP.Winston.endpoints = {' . PHP_EOL;
+        $output .= 'POP.Winston.endpoints = { ';
         $output .= 'trackEvent: \'' . $this->endpoints['event'] . '\',';
         $output .= 'trackPageview: \'' . $this->endpoints['pageview'] . '\'';
-        $output .= '}' . PHP_EOL . PHP_EOL;
+        $output .= ' };' . PHP_EOL;
+
+        error_log('Active tests:');
+        error_log(print_r($this->activeTests, true));
 
         // generate pageviews for active tests
         if (!empty($this->activeTests)) {
@@ -239,7 +242,7 @@ class Winston {
             }
             $pageviews = json_encode($pageviews);
             $code = $this->generateHmac($token, $pageviews);
-            $output .= 'POP.Winston.pageview(' . $pageviews . ', \'' . $code . '\');' . PHP_EOL;
+            $output .= PHP_EOL . 'POP.Winston.pageview(' . $pageviews . ', \'' . $code . '\');' . PHP_EOL;
         }
 
         $output .= '</script>' . PHP_EOL;
@@ -466,6 +469,7 @@ class Winston {
 
         // if still no variation, we simply don't have any
         if (empty($variation)) {
+            error_log('No variation found in pickVariation.');
             return false;
         }
 
@@ -698,7 +702,7 @@ class Winston {
                 continue;
             }
 
-            @ini_set('session.' . $key, $val);
+            ini_set('session.' . $key, $val);
         }
     }
 
@@ -815,6 +819,7 @@ class Winston {
 
         // if we made it this far with no test, no cookie available
         if ($cookieOnly) {
+            error_log('Cookie only variation requested and no cookie found.');
             return false;
         }
 
