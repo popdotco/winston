@@ -8,7 +8,7 @@
      * Either takes in an array of objects (multiple tests) or a single
      * object (individual test).
      */
-    POP.Winston.pageview = function(tests) {
+    POP.Winston.pageview = function(tests, code) {
         if (POP.Winston.disabled) {
             return true;
         }
@@ -21,7 +21,10 @@
             POP.Winston.endpoints.trackPageview,
             {
                 token: POP.Winston.token,
-                tests: tests
+                code: code,
+                data: {
+                    tests: tests
+                }
             },
             function(response, textStatus, jqXHR) {
                 console.log(response);
@@ -32,18 +35,21 @@
     /**
      * Record that a successful event has taken place.
      */
-    POP.Winston.event = function(test_id, variation_id, event) {
+    POP.Winston.event = function(test_id, variation_id, code, event) {
         if (POP.Winston.disabled) {
             return true;
         }
-        
+
         // post to server
         $.post(
             POP.Winston.endpoints.trackEvent,
             {
                 token: POP.Winston.token,
-                test_id: test_id,
-                variation_id: variation_id
+                code: code,
+                data: {
+                    test_id: test_id,
+                    variation_id: variation_id
+                }
             },
             function(response, textStatus, jqXHR) {
                 console.log(response);

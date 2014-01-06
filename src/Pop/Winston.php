@@ -89,6 +89,12 @@ class Winston {
     );
 
     /**
+     * The session token used as a part for authorizing inbound requests.
+     * @var string
+     */
+    public $sessionToken = null;
+
+    /**
      * Default constructor which takes an optional configuration array.
      *
      * @access  public
@@ -170,12 +176,16 @@ class Winston {
             return '';
         }
 
+        // get the token
+        $token = $this->generateToken();
+
+        // get the code
+        $data = array('test_id' => $test_id, 'variation_id' => $variation_id);
+        $data = json_encode($data);
+        $code = $this->generateHmac($token, $data);
+
         // the event binding
-        $event = 'POP.Winston.event(\''
-            . $test_id . '\', \''
-            . $variation_id . '\', \''
-            . $trimType
-            . '\');';
+        $event = 'POP.Winston.event(' . $data . ', \'' . $code . '\', \'' . $trimType . '\');';
 
         // special case for manual events
         if ($trimType != 'manual') {
@@ -216,13 +226,11 @@ class Winston {
         if (!empty($this->activeTests)) {
             $pageviews = array();
             foreach ($this->activeTests as $test_id => $variation_id) {
-                $pageviews[] = '{ test_id: \'' . $test_id . '\', variation_id: \'' . $variation_id . '\' }';
+                $pageviews[] = array('test_id' => $test_id, 'variation_id' => $variation_id);
             }
-
-            $output .= 'var __abTests = [' . PHP_EOL;
-            $output .= implode(', ' . PHP_EOL, $pageviews) . PHP_EOL;
-            $output .= ']' . PHP_EOL;
-            $output .= 'POP.Winston.pageview(__abTests);' . PHP_EOL;
+            $pageviews = json_encode($pageviews);
+            $code = $this->generateHmac($token, $pageviews);
+            $output .= 'POP.Winston.pageview(' . $pageviews . ', \'' . $code . '\');' . PHP_EOL;
         }
 
         $output .= '</script>' . PHP_EOL;
@@ -247,25 +255,21 @@ class Winston {
         }
 
         // TODO: validation of data
-        if (empty($postData['token']) || !$this->isValidToken($postData['token'])) {
+        if (!$this->isAuthorizedRequest($postData)) {
             return false;
         }
 
         // trigger pageview recording for each test
-        if (empty($postData['tests'])) {
+        if (empty($postData['data']['tests'])) {
             return false;
         }
 
-        // load up the redis client
-        $client = $this->loadStorageAdapter('redis');
+        // load up the storage adapter
+        $this->loadStorageAdapter('redis');
 
         // add page view for every test
-        foreach ($postData['tests'] as $test_id) {
-            // find the variation id
-            $variation = $this->getVariation($test_id);
-            if (!empty($variation)) {
-                $client->addPageview($test_id, $variation);
-            }
+        foreach ($postData['data']['tests'] as $test) {
+            $this->storage->addPageview($test['test_id'], $test['variation_id']);
         }
     }
 
@@ -287,17 +291,17 @@ class Winston {
         }
 
         // TODO: validation of data
-        if (empty($postData['token']) || !$this->isValidToken($postData['token'])) {
+        if (!$this->isAuthorizedRequest($postData)) {
             return false;
-        } else if (empty($postData['test_id']) || empty($postData['variation_id'])) {
+        } else if (empty($postData['data']['test_id']) || empty($postData['data']['variation_id'])) {
             return false;
         }
 
-        // load up the redis client
-        $client = $this->loadStorageAdapter('redis');
+        // load up the storage adapter
+        $this->loadStorageAdapter('redis');
 
         // pass off the data
-        $client->addWin($postData['test_id'], $postData['variation_id']);
+        $this->storage->addWin($postData['data']['test_id'], $postData['data']['variation_id']);
     }
 
     /**
@@ -753,11 +757,12 @@ class Winston {
      * Handle retrieving a user test variation. If none is found, we first
      * find one and then set it and return.
      *
-     * @param   access  $public
+     * @access  $public
      * @param   string  $test_id
+     * @param   bool    $cookieOnly If we only return whether the cookie is properly set
      * @return  string|false
      */
-    public function getCookieVariation($test_id)
+    public function getCookieVariation($test_id, $cookieOnly = false)
     {
         // get the test values in question from the config
         $test = $this->getTest($test_id);
@@ -776,6 +781,11 @@ class Winston {
                 // store a local cache of the active variation and return
                 return $this->tests[$test_id]['variation'] = $this->tests[$test_id]['variations'][$_COOKIE[$test_id]];
             }
+        }
+
+        // if we made it this far with no test, no cookie available
+        if ($cookieOnly) {
+            return false;
         }
 
         // pick a random variation
@@ -832,13 +842,17 @@ class Winston {
     }
 
     /**
-     * Handle generating a new session token.
+     * Handle generating a new session token. Uses the one already set if found.
      *
      * @access  public
      * @return  string
      */
     public function generateToken()
     {
+        if (!empty($this->sessionToken)) {
+            return $this->sessionToken;
+        }
+
         $c = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
         $l = strlen($c) - 1;
         $s = '';
@@ -847,9 +861,27 @@ class Winston {
         }
 
         // set session token
-        $_SESSION['pop-winston-token'] = $s;
+        return $_SESSION['winston-token'] = $this->sessionToken = $s;
+    }
 
-        return $s;
+    /**
+     * Generate a message authentication string to accompany the data and
+     * encrypted with the token. The frontend will need to pass back this
+     * value as well as the token so we can verify the data hasn't been
+     * tampered with.
+     *
+     * @access  public
+     * @param   string  $token
+     * @param   string  $data
+     * @return  string
+     */
+    public function generateHmac($token, $data)
+    {
+        if (is_array($data)) {
+            $data = json_encode($data);
+        }
+
+        return base64_encode(hash_hmac('sha1', $data, $token));
     }
 
     /**
@@ -860,16 +892,39 @@ class Winston {
      * to false inflation of our ab testing results.
      *
      * @access  public
-     * @param   string  $token
+     * @param   array   $post
      * @return  bool
      */
-    public function isValidToken($token)
+    public function isAuthorizedRequest($postData)
     {
-        if (empty($_SESSION['pop-winston-token'])) {
+        if (empty($postData['token'])
+            || empty($postData['code'])
+            || empty($postData['data'])
+            || empty($_SESSION['winston-token'])
+        ) {
+            error_log('Unauthorized request. Missing required authorization value.');
             return false;
         }
 
-        return $token === $_SESSION['pop-winston-token'];
+        // check if the token matches
+        if ($postData['token'] !== $_SESSION['winston-token']) {
+            error_log('Unauthorized request. Passed in token doesnt match session token.');
+            return false;
+        }
+
+        $data = $postData['data'];
+        if (is_array($data) || is_object($data)) {
+            $data = json_encode($data);
+        }
+
+        $dataHmac = base64_encode(hash_hmac('sha1', $data, $postData['token']));
+        if ($dataHmac !== $postData['code']) {
+            error_log('Unauthorized request. The passed in HMAC was incorrect.');
+            return false;
+        }
+
+        error_log('Authorized request.');
+        return true;
     }
 
     /**
