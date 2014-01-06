@@ -456,7 +456,7 @@ class Winston {
 
             // if no variation was found, we likely don't have a statistically
             // significant result so fall back to the optimal variation method
-            if (!empty($variation)) {
+            if (empty($variation)) {
                 // generate a random float between 0 and 1
                 $rand = mt_rand() / mt_getrandmax();
                 if ($rand < $this->randomPickPercentage) {
@@ -495,11 +495,14 @@ class Winston {
      */
     public function randomVariation($test)
     {
+        error_log('Inside of randomVariation.');
+
         if (empty($test['variations'])) {
             return false;
         }
 
         $variation_id = array_rand($test['variations']);
+        error_log('Variation key picked: ' . $variation_id);
         $variation = $test['variations'][$variation_id];
         $variation['id'] = $variation_id;
 
@@ -519,6 +522,8 @@ class Winston {
         $optimal = NULL;
         $highestPercentage = 0.00;
 
+        error_log('Inside of optimalVariation.');
+
         foreach ($test['variations'] as $variation_id => $variation) {
             // skip if no wins or views
             if ($variation['pageviews'] == 0 || $variation['wins'] == 0) {
@@ -536,7 +541,7 @@ class Winston {
         }
 
         // if we still have no optimal variation, pick one at random
-        if (is_null($optimal)) {
+        if (empty($optimal)) {
             return $this->randomVariation($test);
         }
 
