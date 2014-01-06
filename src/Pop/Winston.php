@@ -366,13 +366,16 @@ class Winston {
                 return false;
             }
 
-            // TODO: validation of data
-            if (!$this->isAuthorizedRequest($postData)) {
+            // trigger pageview recording for each test
+            if (empty($postData['data']['tests'])) {
                 return false;
             }
 
-            // trigger pageview recording for each test
-            if (empty($postData['data']['tests'])) {
+            // fix post data for authorization HMAC check
+            $postData['data'] = $postData['data']['tests'];
+
+            // validate POST data
+            if (!$this->isAuthorizedRequest($postData)) {
                 return false;
             }
 
