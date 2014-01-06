@@ -485,7 +485,7 @@ class Winston {
         );
 
         // set the selected variation as active
-        $this->activeTests[$variation['id']] = $variation['id'];
+        $this->activeTests[$test['id']] = $variation['id'];
 
         return $variation;
     }
