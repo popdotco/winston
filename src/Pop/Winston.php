@@ -403,10 +403,13 @@ class Winston {
         // we can't just used stored tests because some may no longer exist in config
         $storedTests = $this->storage->getTests();
         foreach ($storedTests as $storedTest) {
+            // skip over tests not found in config
             if (!isset($tests[$storedTest['id']])) {
                 continue;
             }
 
+            // add pageviews and id
+            $tests[$storedTest['id']]['id'] = $storedTest['id'];
             $tests[$storedTest['id']]['pageviews'] = $storedTest['pageviews'];
 
             // check for variation matches
@@ -419,17 +422,18 @@ class Winston {
                     continue;
                 }
 
+                $tests[$storedTest['id']]['variations'][$variation['id']]['id'] = $variation['id'];
+                $tests[$storedTest['id']]['variations'][$variation['id']]['test_id'] = $variation['test_id'];
                 $tests[$storedTest['id']]['variations'][$variation['id']]['pageviews'] = $variation['pageviews'];
                 $tests[$storedTest['id']]['variations'][$variation['id']]['wins'] = $variation['wins'];
             }
         }
 
+        error_log('TESTS:');
+        error_log(print_r($tests, true));
 
         // merge stored tests with existing tests
         $this->tests = $tests;
-
-        error_log('STORED TESTS:');
-        error_log(print_r($this->tests, true));
     }
 
     /**

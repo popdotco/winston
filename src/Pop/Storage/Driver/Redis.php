@@ -100,7 +100,7 @@ class Redis extends DriverAbstract {
 
         $test_ids = $this->client->lrange('test.ids', 0, -1);
         if (!empty($test_ids)) {
-            $tests = $this->client->pipeline(function ($pipe) use ($test_ids) {
+            $tests = $this->client->pipeline(function($pipe) use ($test_ids) {
                 foreach ($test_ids as $id) {
                     $pipe->hgetall('test:' . $id);
                 }
