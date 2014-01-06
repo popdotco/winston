@@ -89,6 +89,15 @@ class Winston {
     );
 
     /**
+     * API endpoints passed in via config.
+     * @var array
+     */
+    public $endpoints = array(
+        'event'     => '/event',
+        'pageview'  => '/pageview'
+    );
+
+    /**
      * The session token used as a part for authorizing inbound requests.
      * @var string
      */
@@ -218,8 +227,8 @@ class Winston {
 
         // generate api endpoint urls
         $output .= 'POP.Winston.endpoints = {' . PHP_EOL;
-        $output .= 'trackEvent: \'' . $this->config['endpoints']['event'] . '\',';
-        $output .= 'trackPageview: \'' . $this->config['endpoints']['pageview'] . '\'';
+        $output .= 'trackEvent: \'' . $this->endpoints['event'] . '\',';
+        $output .= 'trackPageview: \'' . $this->endpoints['pageview'] . '\'';
         $output .= '}' . PHP_EOL . PHP_EOL;
 
         // generate pageviews for active tests
@@ -546,6 +555,7 @@ class Winston {
         }
 
         $optimalVariation = false;
+        $optimalBayes = 0.00;
         $totalPageviews = 0.00;
         $totalWins = 0.00;
 
@@ -589,7 +599,7 @@ class Winston {
         error_log(print_r($test, true));
 
         // calculate confidence interval for the best overall
-        $confidence = $avgBayes > 0 ? min($avgBayes) / max($avgBayes) : 0;
+        $confidence = $optimalBayes > 0 ? min($avgBayes) / max($avgBayes) : 0;
 
         error_log('Confidence: ' . $confidence);
 
@@ -655,6 +665,9 @@ class Winston {
         // handle setting the adapter config (currently hardcoded to redis)
         $this->setStorageConfig($config['redis']);
 
+        // set api endpoints
+        $this->setApiEndpoints(!empty($config['endpoints']) ? $config['endpoints'] : array());
+
         // add tests
         if (!empty($config['tests'])) {
             $this->addTests($config['tests']);
@@ -711,6 +724,23 @@ class Winston {
     public function setStorageConfig($config)
     {
         $this->storageConfig = $config;
+    }
+
+    /**
+     * Handles setting API endpoints as we need to pass them to the frontend
+     * javascript for generating AJAX requests.
+     *
+     * @access  public
+     * @param   array   $endpoints
+     * @return  void
+     */
+    public function setApiEndpoints($endpoints)
+    {
+        foreach ($endpoints as $k => $v) {
+            if (isset($this->endpoints[$k])) {
+                $this->endpoints[$k] = $v;
+            }
+        }
     }
 
     /**
