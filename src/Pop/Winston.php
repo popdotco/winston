@@ -10,6 +10,12 @@ namespace Pop;
 class Winston {
 
     /**
+     * The name of our cookie storing test and variations for a user.
+     * @var string
+     */
+    const COOKIE_NAME = 'winston-ab';
+
+    /**
      * Whether the machine learning algorithm is enabled or not. If enabled, we
      * first check for a confidence interval ($confidenceInterval) and then fall
      * back to picking a random result a user defined percentage of the time
@@ -125,8 +131,91 @@ class Winston {
             session_start();
         }
 
+        // add tests and their variations
+        $this->addTests(!empty($config['tests']) ? $config['tests'] : array());
+
         // generate session token early to avoid 'headers already sent' issues
         $this->generateToken();
+
+        // also assign the user unique cookie variations upfront
+        $this->assignTestVariations();
+    }
+
+    /**
+     * Set config values with defaults.
+     *
+     * @access  public
+     * @param   array   $config
+     */
+    public function setConfig($config)
+    {
+        // handle cookie settings
+        $keys = array('expires', 'path', 'domain', 'secure');
+        foreach ($keys as $key) {
+            if (!empty($config['cookie'][$key])) {
+                $this->cookie[$key] = $config['cookie'][$key];
+            }
+        }
+
+        // handle overriding session vars
+        $this->setSession(!empty($config['session']) ? $config['session'] : array());
+
+        // handle whether to detect and avoid bots
+        $this->setDetectBots(isset($config['detectBots']) && $config['detectBots'] == true);
+
+        // handle setting the adapter config (currently hardcoded to redis)
+        $this->setStorageConfig(!empty($config['redis']) ? $config['redis'] : array());
+
+        // set api endpoints
+        $this->setApiEndpoints(!empty($config['endpoints']) ? $config['endpoints'] : array());
+    }
+
+    /**
+     * Handles early assignment of test variations for the user so we don't
+     * have any issues with 'headers already sent' issues when dropping in to
+     * another framework. Worst case scenario, we'd have to implement output
+     * buffering to hijack the data which wouldn't be ideal.
+     *
+     * @access  public
+     * @return  void
+     */
+    public function assignTestVariations()
+    {
+        if (empty($this->tests)) {
+            return false;
+        }
+
+        // retrieve cookie variations
+        if (!empty($_COOKIE[self::COOKIE_NAME])) {
+            $cookieVariations = $_COOKIE[self::COOKIE_NAME];
+            $cookieVariations = json_decode($cookieVariations);
+        } else {
+            $cookieVariations = array();
+        }
+
+        // flag whether we updated cookie
+        $cookieUpdated = false;
+
+        // iterate over tests and ensure we have them set in the cookie
+        foreach ($this->tests as $test_id => $test) {
+            if (isset($cookieVariations[$test_id])) {
+                continue;
+            }
+
+            // pick a test variation to add to the cookie
+            $variation = $this->pickVariation($test);
+            if (empty($variation)) {
+                continue;
+            }
+
+            $cookieVariations[$test_id] = $variation[$id];
+            $cookieUpdated = true;
+        }
+
+        // if cookie values updated, we need to handle an override
+        if ($cookieUpdated) {
+            $this->setCookieVariations($cookieVariations);
+        }
     }
 
     /**
@@ -680,38 +769,6 @@ class Winston {
     }
 
     /**
-     * Set config values with defaults.
-     *
-     * @access  public
-     * @param   array   $config
-     */
-    public function setConfig($config)
-    {
-        // handle cookie settings
-        $keys = array('expires', 'path', 'domain', 'secure');
-        foreach ($keys as $key) {
-            if (!empty($config['cookie'][$key])) {
-                $this->cookie[$key] = $config['cookie'][$key];
-            }
-        }
-
-        // handle overriding session vars
-        $this->setSession(!empty($config['session']) ? $config['session'] : array());
-
-        // handle whether to detect and avoid bots
-        $this->setDetectBots(isset($config['detectBots']) && $config['detectBots'] == true);
-
-        // handle setting the adapter config (currently hardcoded to redis)
-        $this->setStorageConfig(!empty($config['redis']) ? $config['redis'] : array());
-
-        // set api endpoints
-        $this->setApiEndpoints(!empty($config['endpoints']) ? $config['endpoints'] : array());
-
-        // add tests and their variations
-        $this->addTests(!empty($config['tests']) ? $config['tests'] : array());
-    }
-
-    /**
      * Handles setting the session config values if any overrides are needed.
      *
      * @access  public
@@ -838,15 +895,22 @@ class Winston {
         }
 
         // check if a cookie variation is already set and if so, just use that
-        if (isset($_COOKIE[$test_id])) {
-            if (!isset($this->tests[$test_id]['variations'][$_COOKIE[$test_id]])) {
-                $this->unsetCookieVariation($test_id);
-            } else {
-                // set the active variation
-                $this->activeTests[$test_id] = $_COOKIE[$test_id];
+        if (isset($_COOKIE[self::COOKIE_NAME])) {
+            // decode so we have access to test variations
+            $tests = json_decode($_COOKIE[self::COOKIE_NAME]);
 
-                // store a local cache of the active variation and return
-                return $this->tests[$test_id]['variation'] = $this->tests[$test_id]['variations'][$_COOKIE[$test_id]];
+            // check if cookie has a stored variation
+            if (isset($tests[$test_id])) {
+                // if we don't have the test variation locally, unset cookie value
+                if (!isset($this->tests[$test_id]['variations'][$tests[$test_id]])) {
+                    $this->unsetCookieVariation($test_id, $tests[$test_id]);
+                } else {
+                    // set the active variation
+                    $this->activeTests[$test_id] = $tests[$test_id];
+
+                    // store a local cache of the active variation and return
+                    return $this->tests[$test_id]['variation'] = $this->tests[$test_id]['variations'][$tests[$test_id]];
+                }
             }
         }
 
@@ -870,7 +934,9 @@ class Winston {
     }
 
     /**
-     * Set a user test for a period of one year given a particular key.
+     * Set a user test variation for a period of one year given a particular key.
+     * Note that we have one overall cookie containing all of a user's tests and
+     * variations. For this reason, we always perform updates on the data.
      *
      * @access  public
      * @param   string  $test_id
@@ -878,9 +944,43 @@ class Winston {
      */
     public function setCookieVariation($test_id, $variation_id)
     {
+        $tests = array();
+
+        if (isset($_COOKIE[self::COOKIE_NAME])) {
+            $tests = $_COOKIE[self::COOKIE_NAME];
+            $tests = json_decode($tests);
+        }
+
+        $tests[$test_id] = $variation_id;
+        $tests = json_encode($tests);
+
         return setcookie(
-            $test_id,
-            $variation_id,
+            self::COOKIE_NAME,
+            $tests,
+            time() + $this->cookie['expires'],
+            $this->cookie['path'],
+            $this->cookie['domain'],
+            $this->cookie['secure']
+        );
+    }
+
+    /**
+     * Handle setting all cookie test variations. We pass in an array in the
+     * format of test_id => variation_id and just set the cookie.
+     *
+     * @access  public
+     * @param   array   $variations
+     * @return  void
+     */
+    public function setCookieVariations($variations)
+    {
+        if (!is_array($variations)) {
+            return false;
+        }
+
+        return setcookie(
+            self::COOKIE_NAME,
+            json_encode($variations),
             time() + $this->cookie['expires'],
             $this->cookie['path'],
             $this->cookie['domain'],
@@ -899,10 +999,22 @@ class Winston {
      */
     public function unsetCookieVariation($test_id, $variation_id)
     {
+        if (!isset($_COOKIE[self::COOKIE_NAME])) {
+            return false;
+        }
+
+        // update cookie with test/variation match removed
+        $tests = $_COOKIE[self::COOKIE_NAME];
+        $tests = json_decode($tests);
+
+        if (isset($tests[$test_id]) && $tests[$test_id] == $variation_id) {
+            unset($tests[$test_id]);
+        }
+
         return setcookie(
-            $test_id,
-            $variation_id,
-            time() - 3600,
+            self::COOKIE_NAME,
+            $tests,
+            time() + $this->cookie['expires'],
             $this->cookie['path'],
             $this->cookie['domain'],
             $this->cookie['secure']
