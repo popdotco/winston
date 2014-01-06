@@ -227,7 +227,7 @@ class Redis extends DriverAbstract {
         $now = $now->format('U');
 
         // begin a transaction
-        $responses = $this->client->transaction(function($tx) {
+        $responses = $this->client->multiExec(function($tx) {
             // increment the object hash counts
             $this->client->hincrby('test:' . $test_id, 'pageviews', 1);
             $this->client->hincrby('variation:' . $variation['id'], 'pageviews', 1);
