@@ -1041,14 +1041,16 @@ class Winston {
             return $this->sessionToken;
         }
 
-        // current timestamp
+        // current timestamp and expiration
         $now = time();
+        $expires = $now + 86400;
 
         // check if session token set
         if (!empty($_SESSION['winston-token'])) {
             $tokenData = json_decode($_SESSION['winston-token'], true);
             if (!empty($tokenData['expires']) && !empty($tokenData['token'])) {
                 if ($tokenData['expires'] >= $now) {
+                    $this->sessionExpires = $tokenData['expires'];
                     return $this->sessionToken = $tokenData['token'];
                 }
             }
@@ -1063,12 +1065,11 @@ class Winston {
         }
 
         // create new session token that expires in an hour
-        $tokenData = array(
-            'token'     => $s,
-            'expires'   => $now + 86400
-        );
-
+        $tokenData = array('token' => $s, 'expires' => $expires);
         $_SESSION['winston-token'] = json_encode($tokenData);
+
+        // set the session expiry
+        $this->sessionExpires = $expires;
 
         // return just the token portion
         return $this->sessionToken = $s;
@@ -1091,7 +1092,7 @@ class Winston {
             $data = json_encode($data);
         }
 
-        return base64_encode(hash_hmac('sha1', $data, $token));
+        return base64_encode(hash_hmac('sha1', $data, $token) . '||' . $this->sessionExpires);
     }
 
     /**
@@ -1107,6 +1108,8 @@ class Winston {
      */
     public function isAuthorizedRequest($postData)
     {
+        error_log('Inside of isAuthorizedRequest');
+
         if (empty($postData['token'])
             || empty($postData['code'])
             || empty($postData['data'])
@@ -1116,8 +1119,17 @@ class Winston {
             return false;
         }
 
+        // get session token data
+        $sessionToken = $_SESSION['winston-token'];
+        $sessionToken = json_decode($sessionToken, true);
+
+        error_log('Session token: ');
+        error_log(print_r($sessionToken, true));
+        error_log('POST token: ');
+        error_log(print_r($postData['token'], true));
+
         // check if the token matches
-        if ($postData['token'] !== $_SESSION['winston-token']) {
+        if ($postData['token'] !== $sessionToken['token']) {
             error_log('Unauthorized request. Passed in token doesnt match session token.');
             return false;
         }
@@ -1127,7 +1139,8 @@ class Winston {
             $data = json_encode($data);
         }
 
-        $dataHmac = base64_encode(hash_hmac('sha1', $data, $postData['token']));
+        // validate HMAC
+        $dataHmac = base64_encode(hash_hmac('sha1', $data, $postData['token']) . '||' . $sessionToken['expires']);
         if ($dataHmac !== $postData['code']) {
             error_log('Unauthorized request. The passed in HMAC was incorrect.');
             return false;
