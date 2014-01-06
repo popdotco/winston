@@ -208,7 +208,7 @@ class Winston {
                 continue;
             }
 
-            $cookieVariations[$test_id] = $variation[$id];
+            $cookieVariations[$test_id] = $variation['id'];
             $cookieUpdated = true;
         }
 
