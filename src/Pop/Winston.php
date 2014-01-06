@@ -383,7 +383,7 @@ class Winston {
             $this->loadStorageAdapter('redis');
 
             // add page view for every test
-            foreach ($postData['data']['tests'] as $test) {
+            foreach ($postData['data'] as $test) {
                 $this->storage->addPageview($test['test_id'], $test['variation_id']);
             }
 
