@@ -286,13 +286,10 @@ class Winston {
             return '';
         }
 
-        // get the token
-        $token = $this->generateToken();
-
         // get the code
         $data = array('test_id' => $test_id, 'variation_id' => $variation_id);
         $data = json_encode($data);
-        $code = $this->generateHmac($token, $data);
+        $code = $this->generateHmac($data);
 
         // the event binding
         $event = 'POP.Winston.event(' . $data . ', \'' . $code . '\', \'' . $trimType . '\');';
@@ -315,12 +312,12 @@ class Winston {
      */
     public function javascript()
     {
-        $token = $this->generateToken();
+        $this->generateToken();
 
         $output = '<script type="text/javascript" defer>' . PHP_EOL;
         $output .= 'POP = POP || {};' . PHP_EOL;
         $output .= 'POP.Winston = POP.Winston || {};' . PHP_EOL;
-        $output .= 'POP.Winston.token = \'' . $token . '\';' . PHP_EOL;
+        $output .= 'POP.Winston.token = \'' . $this->sessionToken . '\';' . PHP_EOL;
 
         // check if disabling winston
         $isDisabled = $this->getDetectBots() && $this->isBot() ? 'true' : 'false';
@@ -342,7 +339,7 @@ class Winston {
                 $pageviews[] = array('test_id' => $test_id, 'variation_id' => $variation_id);
             }
             $pageviews = json_encode($pageviews);
-            $code = $this->generateHmac($token, $pageviews);
+            $code = $this->generateHmac($pageviews);
             $output .= PHP_EOL . 'POP.Winston.pageview(' . $pageviews . ', \'' . $code . '\');' . PHP_EOL;
         }
 
@@ -1082,17 +1079,20 @@ class Winston {
      * tampered with.
      *
      * @access  public
-     * @param   string  $token
      * @param   string  $data
      * @return  string
      */
-    public function generateHmac($token, $data)
+    public function generateHmac($data)
     {
         if (is_array($data)) {
             $data = json_encode($data);
         }
 
-        return base64_encode(hash_hmac('sha1', $data, $token) . '||' . $this->sessionExpires);
+        // ensure we have a generated token
+        $this->generateToken();
+
+        // return HMAC encoding
+        return base64_encode(hash_hmac('sha1', $data, $this->sessionToken) . '||' . $this->sessionExpires);
     }
 
     /**
@@ -1138,6 +1138,11 @@ class Winston {
         if (is_array($data) || is_object($data)) {
             $data = json_encode($data);
         }
+
+        error_log('postData:');
+        error_log(print_r($postData, true));
+        error_log('Newly calculated HMAC: ');
+        error_log(base64_encode(hash_hmac('sha1', $data, $postData['token']) . '||' . $sessionToken['expires']));
 
         // validate HMAC
         $dataHmac = base64_encode(hash_hmac('sha1', $data, $postData['token']) . '||' . $sessionToken['expires']);
