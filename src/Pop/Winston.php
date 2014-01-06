@@ -199,6 +199,10 @@ class Winston {
         // iterate over tests and ensure we have them set in the cookie
         foreach ($this->tests as $test_id => $test) {
             if (isset($cookieVariations[$test_id])) {
+                // set the active variation
+                $this->tests[$test_id]['variation'] = $this->tests[$test_id]['variations'][$cookieVariations[$test_id]];
+                $this->activeTests[$test_id] = $cookieVariations[$test_id];
+
                 continue;
             }
 
@@ -208,6 +212,7 @@ class Winston {
                 continue;
             }
 
+            // set the selected cookie variation
             $cookieVariations[$test_id] = $variation['id'];
             $cookieUpdated = true;
         }
@@ -567,6 +572,8 @@ class Winston {
      */
     public function pickVariation($test)
     {
+        error_log('Inside of pickVariation.');
+
         // if machine learning is disabled, just pick random
         if (!$this->enableMachineLearning) {
             $variation = $this->randomVariation($test);
