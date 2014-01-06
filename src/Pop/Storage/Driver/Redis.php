@@ -237,7 +237,7 @@ class Redis extends DriverAbstract {
             $variationPageviews = $this->client->zincrby('variations:sorted_by_views', 1, $variation_id);
 
             // retrieve the hash wins
-            $variationWins = $this->client->hget('variations', $variation_id, 'wins');
+            $variationWins = $this->client->hget('variation:' . $variation_id, 'wins');
 
             // calculate ranking change
             $rank = 0.00;
