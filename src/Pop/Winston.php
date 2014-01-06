@@ -1036,10 +1036,25 @@ class Winston {
      */
     public function generateToken()
     {
+        // check for existing session token
         if (!empty($this->sessionToken)) {
             return $this->sessionToken;
         }
 
+        // current timestamp
+        $now = time();
+
+        // check if session token set
+        if (!empty($_SESSION['winston-token'])) {
+            $tokenData = json_decode($_SESSION['winston-token'], true);
+            if (!empty($tokenData['expires']) && !empty($tokenData['token'])) {
+                if ($tokenData['expires'] >= $now) {
+                    return $this->sessionToken = $tokenData['token'];
+                }
+            }
+        }
+
+        // we need to generate a new session token
         $c = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
         $l = strlen($c) - 1;
         $s = '';
@@ -1047,8 +1062,16 @@ class Winston {
             $s .= $c[rand(0, $l)];
         }
 
-        // set session token
-        return $_SESSION['winston-token'] = $this->sessionToken = $s;
+        // create new session token that expires in an hour
+        $tokenData = array(
+            'token'     => $s,
+            'expires'   => $now + 86400
+        );
+
+        $_SESSION['winston-token'] = json_encode($tokenData);
+
+        // return just the token portion
+        return $this->sessionToken = $s;
     }
 
     /**
