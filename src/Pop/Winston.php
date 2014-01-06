@@ -10,17 +10,6 @@ namespace Pop;
 class Winston {
 
     /**
-     * The confidence interval before machine learnings kicks in. If the value
-     * is NULL, FALSE, 0, or empty string, we won't use confidence intervals
-     * when determining which variation to choose. If a float, i.e. .90 or .95,
-     * we only pick the most popular variation if there's statistically
-     * significant data backing it up.
-     *
-     * @var float
-     */
-    public $confidenceInterval = .95;
-
-    /**
      * Whether the machine learning algorithm is enabled or not. If enabled, we
      * first check for a confidence interval ($confidenceInterval) and then fall
      * back to picking a random result a user defined percentage of the time
@@ -33,8 +22,23 @@ class Winston {
     public $enableMachineLearning = true;
 
     /**
+     * The confidence interval dictates if you want to be extra cautious when
+     * picking optimal variations. First and foremost, $enableMachineLearning
+     * must be enabled. Second, random variations will always be picked until
+     * a test variation is deemed statistically significant. If the value
+     * is NULL, FALSE, 0, or empty string, we won't use confidence intervals
+     * when determining which variation to choose. If a float, i.e. .90 or .95,
+     * we only pick the most popular variation if there's statistically
+     * significant data backing it up.
+     *
+     * @var float
+     */
+    public $confidenceInterval = .95;
+
+    /**
      * The percentage of the time we wish to pick a random variation, if
-     * machine learning is turned on.
+     * machine learning is turned on. This is the fallback method if we have
+     * confidence intervals turned off and $enableMachineLearning enabled.
      *
      * @var float
      */
@@ -261,28 +265,39 @@ class Winston {
      */
     public function recordPageview($postData = array())
     {
-        // don't record if bot detection is enabled and client is a bot
-        if ($this->getDetectBots() && $this->isBot()) {
-            return false;
+        try {
+
+            // don't record if bot detection is enabled and client is a bot
+            if ($this->getDetectBots() && $this->isBot()) {
+                return false;
+            }
+
+            // TODO: validation of data
+            if (!$this->isAuthorizedRequest($postData)) {
+                return false;
+            }
+
+            // trigger pageview recording for each test
+            if (empty($postData['data']['tests'])) {
+                return false;
+            }
+
+            // load up the storage adapter
+            $this->loadStorageAdapter('redis');
+
+            // add page view for every test
+            foreach ($postData['data']['tests'] as $test) {
+                $this->storage->addPageview($test['test_id'], $test['variation_id']);
+            }
+
+            return true;
+
+        } catch (Exception $e) {
+            error_log($e->getMessage());
+            error_log(print_r($e, true));
         }
 
-        // TODO: validation of data
-        if (!$this->isAuthorizedRequest($postData)) {
-            return false;
-        }
-
-        // trigger pageview recording for each test
-        if (empty($postData['data']['tests'])) {
-            return false;
-        }
-
-        // load up the storage adapter
-        $this->loadStorageAdapter('redis');
-
-        // add page view for every test
-        foreach ($postData['data']['tests'] as $test) {
-            $this->storage->addPageview($test['test_id'], $test['variation_id']);
-        }
+        return false;
     }
 
     /**
@@ -297,23 +312,34 @@ class Winston {
      */
     public function recordEvent($postData = array())
     {
-        // don't record if bot detection is enabled and client is a bot
-        if ($this->getDetectBots() && $this->isBot()) {
-            return false;
+        try {
+
+            // don't record if bot detection is enabled and client is a bot
+            if ($this->getDetectBots() && $this->isBot()) {
+                return false;
+            }
+
+            // TODO: validation of data
+            if (!$this->isAuthorizedRequest($postData)) {
+                return false;
+            } else if (empty($postData['data']['test_id']) || empty($postData['data']['variation_id'])) {
+                return false;
+            }
+
+            // load up the storage adapter
+            $this->loadStorageAdapter('redis');
+
+            // pass off the data
+            $this->storage->addWin($postData['data']['test_id'], $postData['data']['variation_id']);
+
+            return true;
+
+        } catch (Exception $e) {
+            error_log($e->getMessage());
+            error_log(print_r($e, true));
         }
 
-        // TODO: validation of data
-        if (!$this->isAuthorizedRequest($postData)) {
-            return false;
-        } else if (empty($postData['data']['test_id']) || empty($postData['data']['variation_id'])) {
-            return false;
-        }
-
-        // load up the storage adapter
-        $this->loadStorageAdapter('redis');
-
-        // pass off the data
-        $this->storage->addWin($postData['data']['test_id'], $postData['data']['variation_id']);
+        return false;
     }
 
     /**
@@ -667,24 +693,19 @@ class Winston {
         }
 
         // handle overriding session vars
-        if (!empty($config['session'])) {
-            $this->setSession($config['session']);
-        }
+        $this->setSession(!empty($config['session']) ? $config['session'] : array());
 
         // handle whether to detect and avoid bots
         $this->setDetectBots(isset($config['detectBots']) && $config['detectBots'] == true);
 
-        // TODO: remove hardcoding
         // handle setting the adapter config (currently hardcoded to redis)
-        $this->setStorageConfig($config['redis']);
+        $this->setStorageConfig(!empty($config['redis']) ? $config['redis'] : array());
 
         // set api endpoints
         $this->setApiEndpoints(!empty($config['endpoints']) ? $config['endpoints'] : array());
 
-        // add tests
-        if (!empty($config['tests'])) {
-            $this->addTests($config['tests']);
-        }
+        // add tests and their variations
+        $this->addTests(!empty($config['tests']) ? $config['tests'] : array());
     }
 
     /**
@@ -1149,15 +1170,21 @@ class Winston {
 
     /**
      * Handle loading/setting the current storage adapter.
+     *
+     * @access  public
+     * @param   string  $adapter
+     * @return  mixed
      */
     public function loadStorageAdapter($adapter = 'redis')
     {
         if (!empty($this->storage)) {
-            return $this->storage;
+            return true;
         }
 
         if ($adapter == 'redis') {
-            return $this->storage = new \Pop\Storage\Driver\Redis($this->getStorageConfig());
+            $config = $this->getStorageConfig();
+            $this->storage = new \Pop\Storage\Driver\Redis($config);
+            return true;
         }
 
         return false;
