@@ -242,7 +242,7 @@ class Redis extends DriverAbstract {
             // calculate ranking change
             $rank = 0.00;
             if ($variationPageviews > 0) {
-                $rank = $variationWins / $variationPageViews;
+                $rank = $variationWins / $variationPageviews;
             }
 
             // update the variation rankings
