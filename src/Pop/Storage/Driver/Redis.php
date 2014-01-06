@@ -179,10 +179,10 @@ class Redis extends DriverAbstract {
      *
      * @access  public
      * @param   string  $test_id
-     * @param   array   $variation
+     * @param   string  $variation_id
      * @return  void
      */
-    public function createVariationIfDne($test_id, $variation)
+    public function createVariationIfDne($test_id, $variation_id)
     {
         $this->getClient();
 
@@ -191,13 +191,13 @@ class Redis extends DriverAbstract {
         $now = $now->format('U');
 
         // create variation if DNE
-        if (!$this->client->hexists('variation:' . $variation['id'], 'pageviews')) {
+        if (!$this->client->hexists('variation:' . $variation_id, 'pageviews')) {
             // add variation hash key to list
-            $this->client->rpush('variation.ids', $variation['id']);
+            $this->client->rpush('variation.ids', $variation_id);
 
             // create variation hash
-            $this->client->hmset('variation:' . $variation['id'], array(
-                'id'            => $variation['id'],
+            $this->client->hmset('variation:' . $variation_id, array(
+                'id'            => $variation_id,
                 'test_id'       => $test_id,
                 'pageviews'     => 0,
                 'wins'          => 0,
@@ -205,7 +205,7 @@ class Redis extends DriverAbstract {
             ));
 
             // associate variation to test
-            $this->client->rpush('test:' . $test_id . ':variation.ids', $variation['id']);
+            $this->client->rpush('test:' . $test_id . ':variation.ids', $variation_id);
         }
     }
 

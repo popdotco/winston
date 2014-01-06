@@ -52,10 +52,10 @@ abstract class DriverAbstract {
      *
      * @access  public
      * @param   string  $test_id
-     * @param   array   $variation
+     * @param   string  $variation_id
      * @return  void
      */
-    abstract public function createVariationIfDne($test_id, $variation);
+    abstract public function createVariationIfDne($test_id, $variation_id);
 
     /**
      * Record a pageview on a particular test and variation.
