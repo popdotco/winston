@@ -215,10 +215,10 @@ class Redis extends DriverAbstract {
      *
      * @access  public
      * @param   string  $test_id
-     * @param   array   $variation
+     * @param   array   $variation_id
      * @return  mixed
      */
-    public function addPageview($test_id, $variation)
+    public function addPageview($test_id, $variation_id)
     {
         $this->getClient();
 
@@ -227,17 +227,17 @@ class Redis extends DriverAbstract {
         $now = $now->format('U');
 
         // begin a transaction
-        $responses = $this->client->multiExec(function($tx) use($test_id, $variation) {
+        $responses = $this->client->multiExec(function($tx) use($test_id, $variation_id) {
             // increment the object hash counts
             $this->client->hincrby('test:' . $test_id, 'pageviews', 1);
-            $this->client->hincrby('variation:' . $variation['id'], 'pageviews', 1);
+            $this->client->hincrby('variation:' . $variation_id, 'pageviews', 1);
 
             // increment the sorted set counts for pageview rankings
             $testPageviews = $this->client->zincrby('tests:sorted_by_views', 1, $test_id);
-            $variationPageviews = $this->client->zincrby('variations:sorted_by_views', 1, $variation['id']);
+            $variationPageviews = $this->client->zincrby('variations:sorted_by_views', 1, $variation_id);
 
             // retrieve the hash wins
-            $variationWins = $this->client->hget('variations', $variation['id'], 'wins');
+            $variationWins = $this->client->hget('variations', $variation_id, 'wins');
 
             // calculate ranking change
             $rank = 0.00;
@@ -246,7 +246,7 @@ class Redis extends DriverAbstract {
             }
 
             // update the variation rankings
-            $this->client->zadd('variations:sorted_by_rank', $rank, $variation['id']);
+            $this->client->zadd('variations:sorted_by_rank', $rank, $variation_id);
         });
     }
 
