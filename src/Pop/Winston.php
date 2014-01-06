@@ -188,7 +188,7 @@ class Winston {
         // retrieve cookie variations
         if (!empty($_COOKIE[self::COOKIE_NAME])) {
             $cookieVariations = $_COOKIE[self::COOKIE_NAME];
-            $cookieVariations = json_decode($cookieVariations);
+            $cookieVariations = json_decode($cookieVariations, true);
         } else {
             $cookieVariations = array();
         }
@@ -897,7 +897,7 @@ class Winston {
         // check if a cookie variation is already set and if so, just use that
         if (isset($_COOKIE[self::COOKIE_NAME])) {
             // decode so we have access to test variations
-            $tests = json_decode($_COOKIE[self::COOKIE_NAME]);
+            $tests = json_decode($_COOKIE[self::COOKIE_NAME], true);
 
             // check if cookie has a stored variation
             if (isset($tests[$test_id])) {
@@ -948,7 +948,7 @@ class Winston {
 
         if (isset($_COOKIE[self::COOKIE_NAME])) {
             $tests = $_COOKIE[self::COOKIE_NAME];
-            $tests = json_decode($tests);
+            $tests = json_decode($tests, true);
         }
 
         $tests[$test_id] = $variation_id;
@@ -1005,7 +1005,7 @@ class Winston {
 
         // update cookie with test/variation match removed
         $tests = $_COOKIE[self::COOKIE_NAME];
-        $tests = json_decode($tests);
+        $tests = json_decode($tests, true);
 
         if (isset($tests[$test_id]) && $tests[$test_id] == $variation_id) {
             unset($tests[$test_id]);
