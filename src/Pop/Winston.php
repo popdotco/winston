@@ -378,8 +378,8 @@ class Winston {
         $this->loadStorageAdapter();
         foreach ($tests as $test_id => $test) {
             $this->storage->createTestIfDne($test_id, $test);
-            foreach ($test['variations'] as $variation) {
-                $this->storage->createVariationIfDne($test_id, $variation);
+            foreach ($test['variations'] as $variation_id => $variation) {
+                $this->storage->createVariationIfDne($test_id, $variation_id);
             }
         }
 
@@ -585,7 +585,7 @@ class Winston {
         error_log(print_r($test, true));
 
         // calculate confidence interval for the best overall
-        $confidence = min($avgBayes) / max($avgBayes);
+        $confidence = $avgBayes > 0 ? min($avgBayes) / max($avgBayes) : 0;
 
         error_log('Confidence: ' . $confidence);
 
