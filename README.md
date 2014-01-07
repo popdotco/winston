@@ -1,6 +1,6 @@
 ## Status
 
-Winston is *pre-alpha* and in *active development*. You can contribute, but it's not ready for showtime. In fact, it's not even bug free at this point and is undergoing heavy development and testing.
+Winston is *alpha* and in *active development*. You can contribute, but it's not ready for showtime.
 
 # About
 
