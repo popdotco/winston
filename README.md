@@ -131,3 +131,48 @@ Let's now bind a form submission event directly to a form as an example which wi
   2. Redis must be installed and accessible.
   3. Composer is required for loading dependencies such as Predis, a popular PHP Redis client.
   4. You must create server side API endpoints in your framework or custom rolled application for Winston to be able to interact with the server side Winston library. These endpoints will need to take in `POST` data, load the Winston library, and pass in the `POST` data to the Winston library. More documentation to come.
+  
+## Suggested Setup ##
+
+#### Improve Redis persistence ####
+
+Redis is an in-memory key/value store. It's default configuration is to save snapshots of your data every **60 seconds** or every **1000 keys changed**. Because of this, you risk data loss if any of the following were to occur:
+
+  1. Redis fails/stops
+  2. A power outage occurs without a UPC
+  3. The machine crashes/restarts
+
+If you can't tolerate losses of this magnitude and are willing to sacrifice a bit write speed, you'll want to enable **Append-only file** data persistence in your redis configuration file:
+
+```bash
+# enable append-only file
+appendonly yes
+
+# enable fsync'ing every second (up to 1 second data loss)
+# for no data loss, use 'appendfsync always'
+appendfsync everysec
+
+# disable snapshotting (RDB)
+save ""
+```
+
+Before updating your `redis.conf` file, you'll want to first read the guide below to backup your existing Redis database via an RDB dump to ensure no data is lost during the transition.
+
+[You can read more about Redis persistence and configuration options here](http://redis.io/topics/persistence).
+  
+#### Secure Redis ####
+
+You will likely want to increase the default security measures/precautions of your Redis install.
+
+  1. Set up firewall rules (i.e. IPTables) to only allow certain machines to access the Redis port, i.e. `127.0.0.1` for the local machine or `192.168.1.X` for a machine within your same subnet. Likewise, you'll want to edit your `redis.conf` file and add `bind XXX.XXX.XXX.XXX` with your allowed IP or IPs. If you need remote access, you can use `bind 0.0.0.0` so long as you also create firewall rules to whitelist machines and grant them access to port `6379`. 
+  2. Enabling password authentication is highly recommended as Redis defaults to no password with full access to all commands. Winston supports Redis authentication in the configuration file by adding `auth = 'yourredispassword'`.
+
+```bash
+# firewall using UFW
+sudo ufw allow from xx.xx.xx.x1 to any port 6379
+
+# firewall using iptables
+sudo iptables -A INPUT -s XXX.XXX.XXX -p tcp -m tcp --dport 6379 -j ACCEPT 
+sudo bash -c 'iptables-save > /etc/sysconfig/iptables'
+
+[You can read more about Redis security and configuration options here](http://redis.io/topics/security).
