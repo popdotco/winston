@@ -176,3 +176,7 @@ sudo iptables -A INPUT -s XXX.XXX.XXX -p tcp -m tcp --dport 6379 -j ACCEPT
 sudo bash -c 'iptables-save > /etc/sysconfig/iptables'
 
 [You can read more about Redis security and configuration options here](http://redis.io/topics/security).
+
+
+[![Bitdeli Badge](https://d2weczhvl823v0.cloudfront.net/popdotco/winston/trend.png)](https://bitdeli.com/free "Bitdeli Badge")
+
