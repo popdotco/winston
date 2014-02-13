@@ -174,6 +174,7 @@ sudo ufw allow from xx.xx.xx.x1 to any port 6379
 # firewall using iptables
 sudo iptables -A INPUT -s XXX.XXX.XXX -p tcp -m tcp --dport 6379 -j ACCEPT 
 sudo bash -c 'iptables-save > /etc/sysconfig/iptables'
+```
 
 [You can read more about Redis security and configuration options here](http://redis.io/topics/security).
 
