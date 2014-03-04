@@ -4,16 +4,26 @@ Winston is *alpha* and in *active development*. You can contribute, but it's not
 
 # About
 
-Winston is a AB/split/multivariate testing library utilizing Redis and a basic machine learning algorithm for automatically displaying the most successful test variations. Winston also has the ability to employ confidence interval checks on your test variation performance to ensure that randomization of variations continues to occur until Winston is confident that a test variation is indeed statistically performing better than the others.
+Winston is a AB/split testing library which utilizes Redis and basic machine learning. At it's core, Winston is a configurable roll-your-own A/B testing tool. Winston comes with several flavors of AB testing out of the box based on configuration options:
+
+### About Machine Learning ###
+You can optionally tell Winston whether you'd like to enable machine learning algorithm or not. If it's enabled, Winston will first check if a test is reliably a favorite via confidence intervals. If a test has no clear favorite, Winston falls back to picking a random test variation a certain percentage of the time *(defaults to 10%)* and picks the current top performing variant the other percentage of the time *(90%)*. If no test variations have any data collected, Winston will always pick at random. The goal of Winston is to take the guess work out of displaying a top performing test variation. It's a set and forget operation.
 
 ## Usage
 
+Below is an example of using Winston. It has three core parts:
+
+1. *Configuration:* You need to setup your Winston configuration file settings to your liking and create tests and variations.
+2. *Client Side Code:* You need to add code to your client facing frontend website to display variations and track performance.
+3. *Server Side Code:* You need to create a new server side file (a controller route and action if you use MVC) which you grant Winston access to POST data to. There are two specific API endpoints you'll need for Winston which ultimately call the following: 
+   1. $winston->recordEvent($_POST);
+   2. $winston->recordPageview($_POST);
+
 #### Configuration
 
-Winston requires a bulky configuration array of settings, tests, and test variations. For a full picture of what a configuration array looks like, check out the basic example config file:
+Winston requires a fairly bulky configuration array of settings, tests, and test variations. For a full picture of what a configuration array looks like, check out the basic example config file:
 
 https://github.com/popdotco/winston/blob/master/examples/config.php
-
 
 #### Client Side Code
 
@@ -40,7 +50,7 @@ $winston = new \Pop\Winston($config);
 <!-- add an event separate from the test that also triggers a success -->
 <button type="button" <?= $winston->event('my-first-headline-test', 'click'); ?>>Sample Button</button>
 
-<!-- load the footer javascript (echos) -->
+<!-- load the footer javascript (echo) -->
 <?= $winston->javascript(); ?>
 
 <!-- include the required jquery lib -->
