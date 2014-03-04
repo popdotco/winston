@@ -6,7 +6,7 @@ Winston is *alpha* and in *active development*. You can contribute, but it's not
 
 Winston is a AB/split testing library which utilizes Redis and basic machine learning. At it's core, Winston is a configurable roll-your-own A/B testing tool. Winston comes with several flavors of AB testing out of the box based on configuration options:
 
-### About Machine Learning ###
+#### About Machine Learning
 You can optionally tell Winston whether you'd like to enable machine learning algorithm or not. If it's enabled, Winston will first check if a test is reliably a favorite via confidence intervals. If a test has no clear favorite, Winston falls back to picking a random test variation a certain percentage of the time *(defaults to 10%)* and picks the current top performing variant the other percentage of the time *(90%)*. If no test variations have any data collected, Winston will always pick at random. The goal of Winston is to take the guess work out of displaying a top performing test variation. It's a set and forget operation.
 
 ## Usage
@@ -89,7 +89,7 @@ if ($uri == 'winston/event') {
 
 ## Advanced Usage: Adding Events Within Variations via Templating
 
-With Winston, you can add events directly within your variation text/html. In each variation, you can use the syntax `{{EVENT_NAME}}` where `EVENT_NAME` is one of the supported client events found in the section below. Winston will internally find and replace these matching template strings with DOM event handlers. 
+With Winston, you can add event bindings directly within your variation text/html. In each variation, you can use the syntax `{{EVENT_NAME}}` where `EVENT_NAME` is one of the supported client events found in the section below. Winston will internally find and replace these matching template strings with DOM event handlers. If the JavaScript event is triggered, the currently selected variation will trigger successfully and an AJAX request will fire to your backend indicating the success.
 
 Here's an example of a test you can setup in your configuration file which utilizes the basic template engine:
 
@@ -116,7 +116,7 @@ $config = array(
 
 ## Supported Client Side Events
 
-Winston supports triggering variation successes for all of the popular DOM events, however we suggest steering clear of mouse movement events given how frequently they trigger. The full list of supported events is `click`, `submit`, `focus`, `blur`, `change`, `mouseover`, `mouseout`, `mousedown`, `mouseup`, `keypress`, `keydown`, and `keyup`.
+Winston supports triggering variation successes for all of the popular DOM events, however we suggest steering clear of mouse movement events given how frequently they trigger. The full list of supported events is `click`, `submit`, `focus`, `blur`, `change`, `mouseover`, `mouseout`, `mousedown`, `mouseup`, `keypress`, `keydown`, and `keyup`. Note that we do not handle preventing default event actions or stopping propagation. If you need that, add your own additional event bindings to the element(s).
 
 To trigger an event in your client side code, simply call: `$winston->event('name-of-your-test', EVENT_TYPE)` where `EVENT_TYPE` is one of the events mentioned above. This method will then generate and return a DOM event string for you to output directly in your HTML, i.e.
 
@@ -126,7 +126,7 @@ To trigger an event in your client side code, simply call: `$winston->event('nam
 $winston->event('name-of-your-test', 'click');
 ```
 
-Let's now bind a form submission event directly to a form as an example which will get attributed to the chosen variation. The order of using `event()` and `variation()` doesn't matter:
+Let's now bind a form submission event directly to a form as an example which will get attributed to the chosen variation. The order in which you call `event()` and `variation()` doesn't matter.
 
 ```php
 <form <?= $winston->event('name-of-your-test', 'submit'); ?>>
@@ -144,7 +144,7 @@ Let's now bind a form submission event directly to a form as an example which wi
   
 ## Suggested Setup ##
 
-#### Improve Redis persistence ####
+#### Improve Redis persistence
 
 Redis is an in-memory key/value store. It's default configuration is to save snapshots of your data every **60 seconds** or every **1000 keys changed**. Because of this, you risk data loss if any of the following were to occur:
 
@@ -170,7 +170,7 @@ Before updating your `redis.conf` file, you'll want to first read the guide belo
 
 [You can read more about Redis persistence and configuration options here](http://redis.io/topics/persistence).
   
-#### Secure Redis ####
+#### Secure Redis
 
 You will likely want to increase the default security measures/precautions of your Redis install.
 
@@ -178,10 +178,10 @@ You will likely want to increase the default security measures/precautions of yo
   2. Enabling password authentication is highly recommended as Redis defaults to no password with full access to all commands. Winston supports Redis authentication in the configuration file by adding `auth = 'yourredispassword'`.
 
 ```bash
-# firewall using UFW
+# firewall using UFW on Ubuntu
 sudo ufw allow from xx.xx.xx.x1 to any port 6379
 
-# firewall using iptables
+# firewall using iptables 
 sudo iptables -A INPUT -s XXX.XXX.XXX -p tcp -m tcp --dport 6379 -j ACCEPT 
 sudo bash -c 'iptables-save > /etc/sysconfig/iptables'
 ```
@@ -191,3 +191,6 @@ sudo bash -c 'iptables-save > /etc/sysconfig/iptables'
 
 [![Bitdeli Badge](https://d2weczhvl823v0.cloudfront.net/popdotco/winston/trend.png)](https://bitdeli.com/free "Bitdeli Badge")
 
+## Future Improvements
+
+1. Add method(s) to retrieve current test and variation stats/performance.
