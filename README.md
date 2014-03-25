@@ -1,13 +1,13 @@
-## Status
-
-Winston is *alpha* and in *active development*. You can contribute, but it's not ready for showtime.
-
-# About
+# About Winston
 
 Winston is a AB/split testing library which utilizes Redis and basic machine learning. At it's core, Winston is a configurable roll-your-own A/B testing tool. Winston comes with several flavors of AB testing out of the box based on configuration options:
 
 #### About Machine Learning
 You can optionally tell Winston whether you'd like to enable machine learning algorithm or not. If it's enabled, Winston will first check if a test is reliably a favorite via confidence intervals. If a test has no clear favorite, Winston falls back to picking a random test variation a certain percentage of the time *(defaults to 10%)* and picks the current top performing variant the other percentage of the time *(90%)*. If no test variations have any data collected, Winston will always pick at random. The goal of Winston is to take the guess work out of displaying a top performing test variation. It's a set and forget operation.
+
+## Status
+
+Winston is *alpha* and in *active development*. You can contribute, but it's not ready for showtime.
 
 ## Usage
 
