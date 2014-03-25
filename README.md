@@ -13,11 +13,14 @@ You can optionally tell Winston whether you'd like to enable machine learning al
 
 Below is an example of using Winston. It has three core parts:
 
-1. *Configuration:* You need to setup your Winston configuration file settings to your liking and create tests and variations.
-2. *Client Side Code:* You need to add code to your client facing frontend website to display variations and track performance.
-3. *Server Side Code:* You need to create a new server side file (a controller route and action if you use MVC) which you grant Winston access to POST data to. There are two specific API endpoints you'll need for Winston which ultimately call the following: 
-   1. $winston->recordEvent($_POST);
-   2. $winston->recordPageview($_POST);
+1. *Configuration:*  
+   You need to setup your Winston configuration file settings to your liking and create tests and variations.
+2. *Client Side Code:*  
+   You need to add code to your client facing frontend website to display variations and track performance.
+3. *Server Side Code:* 
+   You need to create a new server side file (a controller route and action if you use MVC) which you grant Winston access to POST data to. There are two specific API endpoints you'll need for Winston which ultimately call the following: 
+   1. `$winston->recordEvent($_POST);`
+   2. `$winston->recordPageview($_POST);`
 
 #### Configuration
 
