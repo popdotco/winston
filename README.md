@@ -1,30 +1,44 @@
 # About Winston
 
-Winston is a AB/split testing library which utilizes Redis and basic machine learning. At it's core, Winston is a configurable roll-your-own A/B testing tool. Winston comes with several flavors of AB testing out of the box based on configuration options:
+Winston is a AB/split testing library which utilizes Redis and basic machine learning. At it's core, Winston is a configurable roll-your-own A/B testing tool. Winston comes with several flavors of AB testing out of the box based on user-defined configuration options.
 
-#### About Machine Learning
-You can optionally tell Winston whether you'd like to enable machine learning algorithm or not. If it's enabled, Winston will first check if a test is reliably a favorite via confidence intervals. If a test has no clear favorite, Winston falls back to picking a random test variation a certain percentage of the time *(defaults to 10%)* and picks the current top performing variant the other percentage of the time *(90%)*. If no test variations have any data collected, Winston will always pick at random. The goal of Winston is to take the guess work out of displaying a top performing test variation. It's a set and forget operation.
+## Features
 
-## Status
 
-Winston is *alpha* and in *active development*. You can contribute, but it's not ready for showtime.
+* Supports machine learning so you can set and forget variations and let Winston determine the best one.
+* Supports split testing (multiple tests per page at once)
+* Supports client side javascript events as well as code-triggered events
+* Minimal bloat to your codebase
+* Highly configurable
+* Composer based
+
+#### Winston and Machine Learning
+You can optionally tell Winston whether you'd like to enable machine learning algorithm or not. If it's enabled, Winston performs the following:
+
+1. It first checks if a test is reliably a favorite via confidence intervals. 
+2. If a test has no clear favorite, Winston decides on one of the following execution paths:
+   1. It falls back to picking a random test variation a certain percentage of the time *(defaults to 10%)* 
+   2. It picks the current top performing variant the remaining percentage of the time *(defaults to 90%)*. 
+   3. If no test variations have any data collected, Winston will always pick at random. 
+
+The goal of Winston is to take the guess work out of displaying a top performing test variation. It's a set and forget operation on your part and Winston takes care of the rest. The default random percentages are entirely configurable.
 
 ## Usage
 
-Below is an example of using Winston. It has three core parts:
+Winston installation and setup is comprised of three core parts. Below is an overview of the three parts followed by details on configuring each of the parts.
 
 1. *Configuration:*  
-   You need to setup your Winston configuration file settings to your liking and create tests and variations.
+   You need to setup your Winston configuration file settings to your liking and create tests and variations. You can store your configuration settings however you want (array, JSON, Yaml, database, key/val store) so long as you can convert the settings to a properly formatted array when initializing Winston.
 2. *Client Side Code:*  
    You need to add code to your client facing frontend website to display variations and track performance.
 3. *Server Side Code:*  
-   You need to create a new server side file (a controller route and action if you use MVC) which you grant Winston access to POST data to. There are two specific API endpoints you'll need for Winston which ultimately call the following: 
+   You need to create a new server side file (a controller route and action if you use MVC) which you grant Winston access to POST data to. There are two specific API endpoints you'll need for Winston which ultimately load an instance of Winston and call the following: 
    1. `$winston->recordEvent($_POST);`
    2. `$winston->recordPageview($_POST);`
 
 #### Configuration
 
-Winston requires a fairly bulky configuration array of settings, tests, and test variations. For a full picture of what a configuration array looks like, check out the basic example config file:
+Winston requires a fairly lengthy configuration array of settings, tests, and test variations. For a full picture of what a configuration array looks like, check out the basic example config file:
 
 https://github.com/popdotco/winston/blob/master/examples/config.php
 
@@ -192,8 +206,11 @@ sudo bash -c 'iptables-save > /etc/sysconfig/iptables'
 [You can read more about Redis security and configuration options here](http://redis.io/topics/security).
 
 
-[![Bitdeli Badge](https://d2weczhvl823v0.cloudfront.net/popdotco/winston/trend.png)](https://bitdeli.com/free "Bitdeli Badge")
+## Status
+
+Winston is *beta* and in *active development*. You can contribute, but it's up to you to determine if Winston is ready for showtime.
 
 ## Future Improvements
 
 1. Add method(s) to retrieve current test and variation stats/performance.
+2. Create a complementary graphical summary page to check on stats/performance.
