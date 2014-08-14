@@ -329,9 +329,6 @@ class Winston {
         $output .= 'trackPageview: \'' . $this->endpoints['pageview'] . '\'';
         $output .= ' };' . PHP_EOL;
 
-        error_log('Active tests:');
-        error_log(print_r($this->activeTests, true));
-
         // generate pageviews for active tests
         if (!empty($this->activeTests)) {
             $pageviews = array();
@@ -552,9 +549,6 @@ class Winston {
             }
         }
 
-        error_log('TESTS:');
-        error_log(print_r($tests, true));
-
         // merge stored tests with existing tests
         $this->tests = $tests;
     }
@@ -572,8 +566,6 @@ class Winston {
      */
     public function pickVariation($test)
     {
-        error_log('Inside of pickVariation.');
-
         // if machine learning is disabled, just pick random
         if (!$this->enableMachineLearning) {
             $variation = $this->randomVariation($test);
@@ -598,7 +590,6 @@ class Winston {
 
         // if still no variation, we simply don't have any
         if (empty($variation)) {
-            error_log('No variation found in pickVariation.');
             return false;
         }
 
@@ -624,14 +615,12 @@ class Winston {
      */
     public function randomVariation($test)
     {
-        error_log('Inside of randomVariation.');
-
         if (empty($test['variations'])) {
             return false;
         }
 
         $variation_id = array_rand($test['variations']);
-        error_log('Variation key picked: ' . $variation_id);
+
         $variation = $test['variations'][$variation_id];
         $variation['id'] = $variation_id;
 
@@ -650,8 +639,6 @@ class Winston {
     {
         $optimal = NULL;
         $highestPercentage = 0.00;
-
-        error_log('Inside of optimalVariation.');
 
         foreach ($test['variations'] as $variation_id => $variation) {
             // skip if no wins or views
@@ -733,13 +720,8 @@ class Winston {
             }
         }
 
-        error_log('Tests w/ variations and bayes averages calculated:');
-        error_log(print_r($test, true));
-
         // calculate confidence interval for the best overall
         $confidence = $optimalBayes > 0 ? min($avgBayes) / max($avgBayes) : 0;
-
-        error_log('Confidence: ' . $confidence);
 
         // return how confident we are
         if ($confidence < $this->confidenceInterval) {
@@ -923,7 +905,6 @@ class Winston {
 
         // if we made it this far with no test, no cookie available
         if ($cookieOnly) {
-            error_log('Cookie only variation requested and no cookie found.');
             return false;
         }
 
@@ -1111,14 +1092,11 @@ class Winston {
      */
     public function isAuthorizedRequest($postData)
     {
-        error_log('Inside of isAuthorizedRequest');
-
         if (empty($postData['token'])
             || empty($postData['code'])
             || empty($postData['data'])
             || empty($_SESSION['winston-token'])
         ) {
-            error_log('Unauthorized request. Missing required authorization value.');
             return false;
         }
 
@@ -1126,14 +1104,8 @@ class Winston {
         $sessionToken = $_SESSION['winston-token'];
         $sessionToken = json_decode($sessionToken, true);
 
-        error_log('Session token: ');
-        error_log(print_r($sessionToken, true));
-        error_log('POST token: ');
-        error_log(print_r($postData['token'], true));
-
         // check if the token matches
         if ($postData['token'] !== $sessionToken['token']) {
-            error_log('Unauthorized request. Passed in token doesnt match session token.');
             return false;
         }
 
@@ -1142,19 +1114,12 @@ class Winston {
             $data = json_encode($data);
         }
 
-        error_log('postData:');
-        error_log(print_r($postData, true));
-        error_log('Newly calculated HMAC: ');
-        error_log(base64_encode(hash_hmac('sha1', $data, $postData['token']) . '||' . $sessionToken['expires']));
-
         // validate HMAC
         $dataHmac = base64_encode(hash_hmac('sha1', $data, $postData['token']) . '||' . $sessionToken['expires']);
         if ($dataHmac !== $postData['code']) {
-            error_log('Unauthorized request. The passed in HMAC was incorrect.');
             return false;
         }
 
-        error_log('Authorized request.');
         return true;
     }
 
